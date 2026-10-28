@@ -51,3 +51,16 @@ test("secrets embedded in free text are redacted, ordinary prose is left alone",
     assert.equal(scrubString(ok), ok, ok);
   }
 });
+
+test("language layer: Pidgin never calls Khaya (unsupported), other Ghanaian languages do", async () => {
+  const { createLanguageLayer } = require("../src/language");
+  const calls = [];
+  const khaya = { isConfigured: () => true, translate: async (t, pair) => { calls.push(pair); return `k:${t}`; } };
+  const llm = { generate: async () => ({ text: "from-gemma" }) };
+  const layer = createLanguageLayer({ khaya, llm });
+  assert.deepEqual(await layer.fromEnglish("hello", "pcm"), { text: "from-gemma", provider: "gemma" });
+  assert.deepEqual(await layer.toEnglish("hello", "pcm"), { text: "from-gemma", provider: "gemma" });
+  assert.equal(calls.length, 0);
+  assert.deepEqual(await layer.fromEnglish("hello", "tw"), { text: "k:hello", provider: "khaya" });
+  assert.equal(calls[0], "en-tw");
+});

@@ -7,7 +7,7 @@ Single source of truth for project state. Read top to bottom at the start of eve
 | Field | Value |
 |---|---|
 | Current phase | **v1.1 built** (API + OpenAPI + web app). Remaining before submission: keys, live-service verification, deploy, demo rehearsal, Devpost write-up. |
-| Blocking issues | `GEMMA_API_KEY` is empty in `.env` (no model call can succeed). Live services were never verified (the build sandbox cannot reach Khaya or the user's localhost log service). `userId` filter in `../central-logging-service` still uncommitted (KL-9). Twi sample message still needed (KL-17). |
+| Blocking issues | **`GEMMA_API_KEY` is empty in `.env`** (no model call can succeed). Khaya and the (local, isolated) log service are verified live. Live services were never verified (the build sandbox cannot reach Khaya or the user's localhost log service). `userId` filter in `../central-logging-service` still uncommitted (KL-9). Twi sample message still needed (KL-17). |
 | Next action | **Fill `GEMMA_API_KEY` (it is EMPTY in `.env`)**, then on the user's Mac: `npm run verify:live` and `npm run verify:live -- --e2e` (server running); fix the first FAIL. Then deploy and rehearse `docs/DEMO_SCRIPT.md`. |
 | Repo state | Git repository on `main`, last commit `5cf6745`. **Uncommitted from the 2026-10-28 live-verification session:** `src/loadEnv.js`, `test/loadEnv.test.js`, `scripts/verify-live.js`, edits to `src/server.js`, `scripts/seed-logs.js`, `scripts/check-khaya.js`, `package.json`, this file. `../central-logging-service` `userId` filter still uncommitted. |
 | Verified running | `npm test`: **77/77 pass** (Node 22.12, `--experimental-sqlite`). `cd web && npm run build` (tsc + vite + prerender): clean. Lighthouse mobile on the production build of `/`: **performance 96, accessibility 100, best practices 100**, no console errors. UI exercised in the in-app browser against the real API with **scripted fakes for Gemma, Khaya and the log service** (login, overview, conversations, takeover, translated reply preview, tickets, connections test, API key, webhook SSRF refusal, invite, audit), and checked at 375px (no horizontal scroll). **Not verified against live Gemma, Khaya or central-logging-service** (attempted from the build sandbox on 2026-10-28: network blocked, so inconclusive, not failed). `scripts/verify-live.js --e2e` was validated against the mock server (6/6 e2e steps). No linter configured (KL-7). |
@@ -47,12 +47,17 @@ Single source of truth for project state. Read top to bottom at the start of eve
 - **`npm run verify:live`** is the single live check (env names, Gemma model-id discovery by listing the key's models, Khaya translate/TTS, log service incl. whether the `userId` filter is active, optional `--e2e` demo story). It must be run on the user's machine: the build sandbox cannot reach Khaya or localhost services. It never prints secrets.
 - **Did not commit from the build sandbox:** git there needs delete permission across the user's whole GitHub folder; commit manually (see Changelog).
 
+### 2026-10-28 (live verification, first real run)
+- **Log service moved:** it is at `../_Modules/central-logging-service` (not `../central-logging-service`). Its `.env` points at a **shared MongoDB Atlas cluster with real apps' logs**, so Helply's demo runs against a separate instance on **local Mongo** (`scripts/start-local-cls.sh`, database `helply_demo_logs`, port 8080). Two scoped keys were minted there with that service's own CLI (`helply-read`: `logs:read`; `helply-seed`: `logs:write`) and written to this repo's `.env` as `CLS_API_KEY` / `CLS_WRITE_KEY` (old values backed up in `.env.bak-before-local-cls`, gitignored). The previous values were unknown to the service (403).
+- **Khaya verified live:** translate en->tw/ee/gaa/fat/dag and back, plus Twi TTS, all work with the configured path/body. **Ghanaian Pidgin is not supported by Khaya** (`UNSUPPORTED_LANGUAGE_PAIR`), so Pidgin now goes straight to Gemma (flagged lower confidence). Pidgin voice (ASR/TTS) has no Khaya code and will not work.
+- **Log service verified live:** read key accepted; a read key cannot write (403); `metadata.userId` present; the `userId` filter works server-side (unknown user returns 0 rows). The seed script's payload was wrong (`error: null` rejected by the service's schema); fixed, 40 fictional logs seeded.
+
 ## Known Limitations
 
 1. ~~In-memory store.~~ Resolved: SQLite (`HELPLY_DB_PATH`, default `.data/helply.db` for `npm start`). Tests use `:memory:`.
-2. Khaya **translate** path/body (`/v1/translate`, `{in, lang}`) is unverified; ASR/TTS shapes come from Maame. Run `npm run check:khaya`.
+2. ~~Khaya translate path/body unverified.~~ Verified live (translate for tw/ee/gaa/fat/dag, TTS for Twi). **ASR is still untested** (needs a .wav: `npm run check:khaya -- file.wav`).
 3. Gemma 4 model id on the Gemini API is unverified (`GEMMA_MODEL=gemma-4-31b-it` is a guess).
-4. Ghanaian Pidgin code for Khaya (`kpo`) is unverified; falls back to Gemma.
+4. ~~Pidgin code for Khaya unverified.~~ Khaya does **not** support Pidgin; it always uses the Gemma fallback and has no voice support.
 5. Round-trip quality is word-overlap (Jaccard), a cheap signal, not a human evaluation.
 6. ~~Single tenant; no accounts.~~ Resolved: workspaces, users, roles, sessions. Sessions are not revocable per device beyond logout/removal; no password reset or email delivery (invitation links are returned, not emailed); no MFA.
 7. No linter configured. Verification is `node --test`, `node --check`, `tsc -b`.
@@ -61,7 +66,7 @@ Single source of truth for project state. Read top to bottom at the start of eve
 10. ~~Frontend not built.~~ Resolved for `/`, `/demo` and `/app/*`. **Not built:** `/docs` page, `/console` legacy routes (superseded by `/app`), embeddable widget.
 11. ~~Rate limiter ignores `trust proxy`.~~ Resolved: `TRUST_PROXY` configures it; set it to `1` behind DigitalOcean. Limiters are in-process (not shared across instances).
 12. Hints come from the model; clamped and validated, but search quality depends on the model's keyword choices.
-13. `scripts/seed-logs.js` has **never been run against a live central-logging-service**.
+13. ~~`scripts/seed-logs.js` never run live.~~ Run live; found and fixed a schema mismatch; 40 logs seeded into the local demo DB.
 14. Gemma adapter, Khaya client and the end-to-end flow were tested only with fakes, never with live APIs. The UI walk-through in this session also used fakes.
 15. The AcademicX and pharma apps still run `@bevingh/telemetry` 0.2.0, which ships raw auth headers and bodies. **Never point the demo at their real logs.**
 16. ~~Nothing is committed.~~ Resolved: first commit `69e08d6`.
@@ -79,7 +84,7 @@ Single source of truth for project state. Read top to bottom at the start of eve
 27. No end-to-end browser test suite; UI behaviour was verified manually in the in-app browser. Frontend has no unit tests.
 
 29. ~~`.env` was never loaded by the server or scripts.~~ Resolved this session (`src/loadEnv.js`, tested). Existing deployments must still set real environment variables.
-30. `GEMMA_API_KEY` is empty in the developer's `.env`. Live Gemma, Khaya and log-service verification (KL-2, KL-3, KL-13, KL-14) is **still pending**; the build sandbox cannot reach them. Use `npm run verify:live`.
+30. **`GEMMA_API_KEY` is still empty in `.env`** (re-checked 2026-10-28 after the user said keys were added). KL-3 (model id) and the end-to-end flow (KL-14) cannot be verified until it is set. Live Gemma, Khaya and log-service verification (KL-2, KL-3, KL-13, KL-14) is **still pending**; the build sandbox cannot reach them. Use `npm run verify:live`.
 31. `scripts/verify-live.js` e2e step names the seeded demo story (Ama/Kofi, `PAY-8842`) and needs `DEMO_MODE=true` for `POST /v1/demo/token`; it is a demo check, not a production smoke test.
 
 ## Next Steps
@@ -111,6 +116,11 @@ Single source of truth for project state. Read top to bottom at the start of eve
 - **Handover (later same day):** brand kit + 4 handover docs + `dev:mock` script added (see Decisions).
 - **Processes:** the dev API (scripted fakes), Vite dev server and preview server started this session were stopped; none left running.
 - **Commits:** `69e08d6` (v1.0 as found) ... `2519d06` (v1.1 code, dashboard, fixes, docs). Docs and this file: `e813de0`.
+
+### 2026-10-28 (live verification, first real run)
+- **Committed** the earlier uncommitted `.env`-loading and `verify:live` work (`0cab1da`, `8ee8552`, `fca633b`).
+- **Fixed:** seed payload (`error: null`); Pidgin no longer attempts Khaya (+ test). **Added:** `scripts/start-local-cls.sh`. Tests 78/78.
+- **Still open:** Gemma key; model id; ASR with a real recording; end-to-end demo story (`npm run verify:live -- --e2e`); `userId` filter in `_Modules/central-logging-service` still uncommitted (KL-9, user action); native-speaker samples.
 
 ### 2026-10-28 (later): live-verification prep
 - **Built:** `src/loadEnv.js` + `test/loadEnv.test.js` (3 tests); `.env` loading in `src/server.js`, `scripts/seed-logs.js`, `scripts/check-khaya.js`; `scripts/verify-live.js` + `npm run verify:live`.

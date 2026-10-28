@@ -35,7 +35,7 @@ const entry = ({ ago, level = "info", method, path, status, ms = 40, user, body 
     duration: ms,
     request: { headers: { authorization: FAKE_JWT, "content-type": "application/json" }, body, query: {}, ip: "197.255.10.20" },
     response: { body: res },
-    error,
+    ...(error ? { error } : {}), // the service's schema rejects error: null
     metadata: { userId: user, ...meta },
   };
 };
