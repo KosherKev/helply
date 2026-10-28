@@ -1,0 +1,7 @@
+Deep Navy #0F172A
+Helply Blue #2563EB
+Sky Blue #60A5FA
+Ice Blue #EFF6FF
+Border Slate #DBEAFE
+White #FFFFFF
+Font: Plus Jakarta Sans (800/700/600/500/400)

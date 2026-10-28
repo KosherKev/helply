@@ -38,6 +38,10 @@ Single source of truth for project state. Read top to bottom at the start of eve
 - **Frontend:** Vite + React + TS + Tailwind v4, React Router; homepage is **prerendered at build time** into `dist/index.html` (sections work with JS off; the same HTML is injected in dev so hydration matches). Fonts self-hosted via `@fontsource` (removed a render-blocking Google Fonts request). Tokens live in memory only (a refresh signs the dashboard out, by design). Charts are hand-rolled SVG.
 - **No machine-written Twi.** The `/demo` Twi quick prompt appears only when `VITE_TWI_SAMPLE` is set to a native speaker's message. Pidgin prompt uses the wording from `FRONTEND_SPEC.md` (still unverified by a speaker).
 
+### 2026-10-28 (handover)
+- **Frontend handed to others; Kevin goes backend-only.** Handover docs in `docs/handover/` (index, landing page, dashboard+demo, language/demo/write-up). `npm run dev:mock` (`scripts/dev-mock-server.js`) runs the real app with scripted fakes so they need no keys.
+- **Brand kit added** to `docs/brand/` (guide HTML + SVG/PNG assets; three SVGs copied to `web/public/brand/`). **The guide's palette (Helply Blue `#2563EB`, Deep Navy, Ice Blue) and Plus Jakarta Sans differ from what the web app currently uses (green/gold, Space Grotesk).** Not re-skinned yet: it is the first job in both frontend handover docs. The guide has no gold/green, so status/cited-line colours need a designer decision (suggestion in `docs/brand/README.md`).
+
 ## Known Limitations
 
 1. ~~In-memory store.~~ Resolved: SQLite (`HELPLY_DB_PATH`, default `.data/helply.db` for `npm start`). Tests use `:memory:`.
@@ -66,6 +70,7 @@ Single source of truth for project state. Read top to bottom at the start of eve
 24. The mic recorder converts to 16 kHz WAV in the browser; untested on Safari and with live Khaya ASR.
 25. Log-source and webhook URL checks resolve DNS at validation time; the log-source fetch itself uses the platform `fetch`, so a rebinding host is only caught at save/test time (webhooks are checked at connect time).
 26. Lighthouse was run on `/` only (production build, Microsoft Edge). `/demo` and `/app` were not scored.
+28. The web app does not follow the brand guide yet (see Decisions, handover). `FRONTEND_SPEC.md` §1 is superseded by `docs/brand/`.
 27. No end-to-end browser test suite; UI behaviour was verified manually in the in-app browser. Frontend has no unit tests.
 
 ## Next Steps
@@ -94,5 +99,6 @@ Single source of truth for project state. Read top to bottom at the start of eve
 - **Built (web):** design system, prerendered homepage, `/demo` (signed-in-as, quick prompts, mic, Glass Box), `/app` dashboard: login/signup/accept-invite, Overview, Conversations (+detail with Glass Box, takeover, translation preview), Tickets (+detail, copy as GitHub issue), Review queue, Knowledge (drag-drop, csv upload), Connections, Developers (keys, webhooks), Team, Audit, Settings (+ customer erasure).
 - **Broke and fixed:** (1) isolation test showed `retrieve()` checked the query before the workspace id; fixed. (2) Browser walk-through showed free-text `token=...` was not redacted (KL-18) and `cleanText` mangled `_` (KL-19); both fixed with tests. (3) Lighthouse found React hydration error #418 (server rendered `<Home/>` while the client wrapped it in `<Suspense>`); server now renders the same `<App/>`, and dev injects the prerender too. (4) Render-blocking Google Fonts (perf 87): fonts self-hosted, perf 96. (5) The generated YAML used anchors that the parser rejected; aliases disabled.
 - **Deliberately not done:** widget script and session bootstrap, customer SSE, `Idempotency-Key`, `/docs` page, email delivery, password reset, frontend unit/e2e tests, live-API verification, deployment, demo rehearsal.
+- **Handover (later same day):** brand kit + 4 handover docs + `dev:mock` script added (see Decisions).
 - **Processes:** the dev API (scripted fakes), Vite dev server and preview server started this session were stopped; none left running.
 - **Commits:** `69e08d6` (v1.0 as found) ... `2519d06` (v1.1 code, dashboard, fixes, docs). Docs and this file: `e813de0`.
