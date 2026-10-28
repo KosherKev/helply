@@ -167,5 +167,5 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 - **Built:** even-row gallery; smooth card reveal; plain-language "What Helply finds" hover notes; `wordShape` and the footer keyframe spelling the product name; tight "Who it's for" heading; centred "[ Just continue to reveal ]".
 - **Broke and fixed:** the stepped glitch entry shook cards sideways by 7–13 px (measured); replaced it. The photo entry animation's fill mode would have blocked the hover zoom (`backwards` instead of `both`).
 - **Verified:** `tsc` and build clean; Lighthouse mobile 93/100/100/100; no frames over 20 ms at 4x CPU slowdown; 0 px card movement after settling; desktop, tablet and phone screenshots; root `npm test` 73/73.
-- **Commit:** `COMMIT_PENDING` on branch `landing-page`.
+- **Commit:** `04e450b` on branch `landing-page`.
 
