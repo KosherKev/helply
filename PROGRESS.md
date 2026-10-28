@@ -122,6 +122,8 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 - **Photos from Pexels**, downloaded from the public CDN after web search (the pexels.com site blocks automated browsing, so no bot-check workaround), resized to WebP 640/1200 and self-hosted. Credited in the footer; the Pexels license needs no attribution.
 - **Scroll lag fixes:** flake animation moved to the vertex shader (was a 7,000-flake CPU loop re-uploading ~450 KB per frame); the world renders on GSAP's ticker after Lenis; resolution cap 1.5 and adaptive step-down; no animated CSS blur on headlines; no backdrop-filter over the canvas; focus list reads then writes layout; text scrub follows Lenis directly (no extra 0.6 s lag); all shape buffers uploaded before the gate opens.
 
+- **Assistant orb talks to the API (user: "use this now", with `docs/openapi.yaml`; "don't touch the api").** The orb follows the web demo's flow, per the contract: `GET /v1/config`, then in demo mode `POST /v1/demo/token` for the first demo customer (server-signed, so identity still comes only from a verified token), then `POST /v1/support/message` carrying `conversationId`. It shows the reply, the English when the reply is in another language, and needs-human / sign-in notes, in an `aria-live` log. Errors become plain sentences with a link to the live demo. When `NEXT_PUBLIC_API_URL` is unset in a build, it opens `/demo` as before. No API code or `.env` was changed.
+
 ## Known Limitations
 
 1. ~~In-memory store.~~ Resolved: SQLite (`HELPLY_DB_PATH`, default `.data/helply.db` for `npm start`). Tests use `:memory:`.
@@ -153,6 +155,7 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 29. The chat orb opens `/demo`, which needs the API running (`npm run dev` at the root, port 8787) and the web dev server (`npm --prefix web run dev`, port 5173) when testing from `next dev`. With no `.env`, the API answers `identity_not_configured` (no `HELPLY_JWT_SECRET`) and `llm_not_configured` (no `GEMMA_API_KEY`), which the user saw as "server error". Needs the user's keys (KL-2, KL-3).
 27. The loader's cursor trail is a 2D-canvas smoke imitation, not a fluid simulation like Emotion's; the entry bang is matched by eye from 100 ms captures, not from Emotion's source.
 28. Round 5 visuals were checked in headless Chrome only; the user views them in Safari, where WebGL colour and canvas shadow blur can differ slightly.
+30. The API allows a single `CORS_ORIGIN` (`.env` has `http://localhost:5173`), so the orb on `next dev` (localhost:3000) is blocked by the browser until the user sets `CORS_ORIGIN` to the site's origin (or `*` for local demos only). In production the API URL and its allowed origin must match the deployed site. Left to the user: the API and `.env` are not to be touched. The orb's live round trip is unverified (no API was started this session; `GEMMA_API_KEY` is still empty).
 
 ## Next Steps
 
@@ -166,7 +169,7 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 8. Get a native-speaker Twi sample message (KL-17). Rehearse `docs/DEMO_SCRIPT.md`.
 9. Deploy (API + static site) on DigitalOcean; record the demo; Devpost write-up. Feature freeze 18:00.
 10. ~~Landing page~~ (built in `site/`, branch `landing-page`). Review and merge are the user's call; never merged by Claude.
-11. ~~Decide `/` routing (KL-19).~~ Confirm `GITHUB_URL` (KL-20); have `/demo` read `?q=` (KL-21).
+11. ~~Decide `/` routing (KL-19).~~ Confirm `GITHUB_URL` (KL-20); have `/demo` read `?q=` (KL-21). Set `CORS_ORIGIN` and `GEMMA_API_KEY`, then try the orb end to end (KL-30).
 12. Enable gzip/brotli on the static host and re-run Lighthouse mobile on the deployed URL.
 
 ## Changelog
@@ -218,3 +221,11 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 - **Verified:** `npm test` 77/77; `node --check` clean; no leftover processes.
 - **Deliberately not done:** live verification, committing, new endpoints (`/widget.js`, `/docs` page remain unbuilt: KL-10).
 - **Commit:** none (uncommitted). Suggested, one per issue: `git add src/loadEnv.js test/loadEnv.test.js src/server.js scripts/seed-logs.js scripts/check-khaya.js && git commit -m "Load .env in server and scripts"`, then `git add scripts/verify-live.js package.json && git commit -m "Add live verification script"`, then `git add PROGRESS.md && git commit -m "Update PROGRESS"`. Record the hashes here.
+
+### 2026-10-28 (landing page: orb on the API)
+- **Built:** `site/src/lib/api.ts` (small fetch client for `/v1/config`, `/v1/demo/token` and `/v1/support/message`, with error codes turned into plain sentences); `AiOrb.tsx` now chats in place per `docs/openapi.yaml`; `NEXT_PUBLIC_API_URL` documented in `site/README.md`.
+- **Reconciliation:** the merge `b483d54` (main into landing-page, made by the user) replaced this file with main's copy. The landing-page changelog entries for rounds 3 to 5, the loader entry and KL-29's original wording survive in `git show 65ba980:PROGRESS.md`; the round 5 decisions and KL-26 to 29 are still present above. Not rewritten here.
+- **Verified:** `npx tsc --noEmit` and `npm run build` in `site/` clean. No API, `web/` or `.env` change (`git status` shows only `site/` and this file).
+- **Not done:** a live chat round trip (needs `CORS_ORIGIN` and `GEMMA_API_KEY`, KL-30); no servers started, per the user's earlier "stop".
+- **Commit:** see the next entry.
+
