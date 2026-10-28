@@ -122,6 +122,7 @@ const buildApp = (config = load(), overrides = {}) => {
   require("./routes/console")(ctx);
   require("./routes/channels")(ctx);
   require("./routes/business")(ctx);
+  require("./routes/quality")(ctx);
   require("./routes/onboarding")(ctx);
 
   app.use((req, res, next) => next(new HttpError(404, "not_found", "Not found")));

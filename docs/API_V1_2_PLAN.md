@@ -1,6 +1,6 @@
 # API v1.2 plan
 
-> **Built (2026-10-28):** channels, the relay API, token v2 claims `aud` and `vid`, the `aiLive` pause switch, **onboarding (computed checklist, test-as-a-customer, go-live, pause), business profile and FAQ (CRUD + CSV import)**. Everything else below is still PLANNED. Integration guide for the ChatFlow side: [`CHATFLOW_INTEGRATION.md`](CHATFLOW_INTEGRATION.md).
+> **Built (2026-10-28):** channels, the relay API, token v2 claims `aud` and `vid`, the `aiLive` pause switch, **onboarding, business profile, FAQ, inbox counts and assignment, issues, playbooks, handoff rules, knowledge gaps, feedback and quality**. Still PLANNED: website indexing (`/v1/knowledge/sites`), customers, notify-fixed, public-key identity, password reset. Everything else below is still PLANNED. Integration guide for the ChatFlow side: [`CHATFLOW_INTEGRATION.md`](CHATFLOW_INTEGRATION.md).
 
 The machine-readable contract is [`openapi.yaml`](openapi.yaml): every operation here is in it with `x-planned: true` and `x-priority` (P0 first). This file explains the **behaviour** the schema cannot. Types, request and response shapes live only in the spec (do not copy them here or they drift). Built routes are in [`API_CONTRACT.md`](API_CONTRACT.md).
 
@@ -83,3 +83,11 @@ Each step ships with tests including the negative cases (wrong workspace, wrong 
 - **Test runs** (`POST /v1/onboarding/test`) create a conversation and ticket flagged `is_test`: hidden from conversation and ticket lists, analytics and root causes, and they never fire webhooks or SSE. The log lookup is still audited, marked `test: true`.
 - **Company text reaches the model** as retrievable excerpts, never wholesale: enabled FAQ entries (boosted above documents) and a "Business details" excerpt (name, about, hours, contacts) are matched against the customer's question like document chunks. The profile `tone` is passed as `<tone>` to the knowledge and explanation prompts. Disabled FAQs are never offered. Personal data is scrubbed from profile and FAQ text on save. `languages` is stored but not yet enforced.
 - **FAQ import:** `row` in errors counts non-empty rows with the header as row 1. Limit 500 entries; duplicate questions (case-insensitive) are skipped or 409.
+
+## As built: inbox, issues, playbooks, handoff rules, gaps, quality
+- **Inbox counts** exclude test conversations; `mine` is the calling user's `human` conversations. `PATCH /v1/conversations/:id` assigns (assignee must be a member).
+- **Issues are derived, not stored:** tickets with the same root-cause fingerprint form one issue (`iss_<fingerprint>`); only status, assignee and `fixedAt` are stored. A ticket created after `fixedAt` makes it show as `open` again (regression). Severity is computed (count and affected customers). `notify-fixed` is still planned.
+- **Playbooks** apply only when the evidence line's `error.code` equals the playbook's (and the optional glob matches the path). The wording is offered inside `<approved_wording>` for those lines only; `alwaysHandoff` forces a handover when such a line is cited. Wording is scrubbed on save. Suggestions come from the last 300 non-test tickets.
+- **Handoff rules can only add handovers:** keywords and `account_issue` hand over before any log lookup; confidence below `minConfidence` hands over; `human_request` is always on. `outsideHours` is stored but **not enforced** (no business-hours logic yet).
+- **Knowledge gaps** are recorded when the knowledge path answered nothing (not for test runs or "I want a person"); clustered by normalised keywords; the question is scrubbed. Resolving with `faq` creates a `source: "gap"` FAQ.
+- **Quality:** feedback is per user per message (last write wins, notes scrubbed); `handoffReasons` are derived from stored traces (`customer_asked`, `knowledge_miss`, `no_evidence`, `logs_unavailable`, `other`).

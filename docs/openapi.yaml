@@ -1648,8 +1648,6 @@ paths:
           required: true
           schema:
             type: string
-      x-planned: true
-      x-priority: P0
       security:
         - sessionAuth: []
       x-min-role: agent
@@ -3588,8 +3586,6 @@ paths:
         - Playbooks
       summary: "Error playbooks: error code to customer wording and owner"
       operationId: get_v1_playbooks
-      x-planned: true
-      x-priority: P1
       security:
         - sessionAuth: []
       x-min-role: agent
@@ -3630,8 +3626,6 @@ paths:
         - Playbooks
       summary: Create a playbook
       operationId: post_v1_playbooks
-      x-planned: true
-      x-priority: P1
       security:
         - sessionAuth: []
       x-min-role: admin
@@ -3711,8 +3705,6 @@ paths:
           required: true
           schema:
             type: string
-      x-planned: true
-      x-priority: P1
       security:
         - sessionAuth: []
       x-min-role: admin
@@ -3788,8 +3780,6 @@ paths:
           required: true
           schema:
             type: string
-      x-planned: true
-      x-priority: P1
       security:
         - sessionAuth: []
       x-min-role: admin
@@ -3820,8 +3810,6 @@ paths:
         - Playbooks
       summary: Error codes seen in evidence that have no playbook yet
       operationId: get_v1_playbooks_suggestions
-      x-planned: true
-      x-priority: P1
       security:
         - sessionAuth: []
       x-min-role: agent
@@ -3863,8 +3851,6 @@ paths:
         - Business
       summary: When the AI must hand over to a person
       operationId: get_v1_handoff_rules
-      x-planned: true
-      x-priority: P1
       security:
         - sessionAuth: []
       x-min-role: agent
@@ -3898,8 +3884,6 @@ paths:
         - Business
       summary: Replace handoff rules
       operationId: put_v1_handoff_rules
-      x-planned: true
-      x-priority: P1
       security:
         - sessionAuth: []
       x-min-role: admin
@@ -3956,8 +3940,6 @@ paths:
           required: false
           schema:
             type: string
-      x-planned: true
-      x-priority: P1
       security:
         - sessionAuth: []
       x-min-role: agent
@@ -4010,8 +3992,6 @@ paths:
           required: true
           schema:
             type: string
-      x-planned: true
-      x-priority: P1
       security:
         - sessionAuth: []
       x-min-role: admin
@@ -4072,8 +4052,6 @@ paths:
           required: true
           schema:
             type: string
-      x-planned: true
-      x-priority: P1
       security:
         - sessionAuth: []
       x-min-role: admin
@@ -4114,8 +4092,6 @@ paths:
           required: true
           schema:
             type: string
-      x-planned: true
-      x-priority: P1
       security:
         - sessionAuth: []
       x-min-role: agent
@@ -4190,8 +4166,6 @@ paths:
           required: false
           schema:
             type: string
-      x-planned: true
-      x-priority: P1
       security:
         - sessionAuth: []
       x-min-role: agent
@@ -4247,8 +4221,6 @@ paths:
           required: false
           schema:
             type: string
-      x-planned: true
-      x-priority: P1
       security:
         - sessionAuth: []
       x-min-role: agent
@@ -4301,8 +4273,6 @@ paths:
           required: true
           schema:
             type: string
-      x-planned: true
-      x-priority: P1
       security:
         - sessionAuth: []
       x-min-role: agent
@@ -4342,8 +4312,6 @@ paths:
           required: true
           schema:
             type: string
-      x-planned: true
-      x-priority: P1
       security:
         - sessionAuth: []
       x-min-role: agent
@@ -4458,8 +4426,6 @@ paths:
           required: true
           schema:
             type: string
-      x-planned: true
-      x-priority: P1
       security:
         - sessionAuth: []
       x-min-role: agent
@@ -4608,8 +4574,6 @@ paths:
         - Conversations
       summary: Counts for the inbox tabs
       operationId: get_v1_inbox_counts
-      x-planned: true
-      x-priority: P0
       security:
         - sessionAuth: []
       x-min-role: agent

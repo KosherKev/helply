@@ -8,7 +8,7 @@ Single source of truth for project state. Read top to bottom at the start of eve
 |---|---|
 | Current phase | **v1.1 built** (API + OpenAPI + web app). Remaining before submission: keys, live-service verification, deploy, demo rehearsal, Devpost write-up. |
 | Blocking issues | None in the verified demo path. Open: `userId` filter in `../_Modules/central-logging-service` still uncommitted (KL-9, user action); native-speaker Twi/Ga/Ewe samples (KL-17); ASR untested with a real recording (KL-2); ChatFlow architecture awaiting the user's confirmation. |
-| Next action | Continue `docs/API_V1_2_PLAN.md` order: inbox counts + assign, then issues, playbooks, handoff rules, knowledge gaps, feedback/quality. ChatFlow-side wiring needs the user's go-ahead to touch that repo. Dashboard developer builds against `npm run dev:mock` (real: onboarding, profile, FAQ, channels, relay). |
+| Next action | Remaining planned backend: website indexing, customers, public-key identity, password reset, notify-fixed. Then deploy (DigitalOcean) and demo rehearsal; ChatFlow-side wiring needs the user's go-ahead. Dashboard developer builds against `npm run dev:mock` (almost everything is real now). |
 | Repo state | Git repository on `main`, last commit `5cf6745`. **Uncommitted from the 2026-10-28 live-verification session:** `src/loadEnv.js`, `test/loadEnv.test.js`, `scripts/verify-live.js`, edits to `src/server.js`, `scripts/seed-logs.js`, `scripts/check-khaya.js`, `package.json`, this file. `../central-logging-service` `userId` filter still uncommitted. |
 | Verified running | `npm test`: **77/77 pass** (Node 22.12, `--experimental-sqlite`). `cd web && npm run build` (tsc + vite + prerender): clean. Lighthouse mobile on the production build of `/`: **performance 96, accessibility 100, best practices 100**, no console errors. UI exercised in the in-app browser against the real API with **scripted fakes for Gemma, Khaya and the log service** (login, overview, conversations, takeover, translated reply preview, tickets, connections test, API key, webhook SSRF refusal, invite, audit), and checked at 375px (no horizontal scroll). **Not verified against live Gemma, Khaya or central-logging-service** (attempted from the build sandbox on 2026-10-28: network blocked, so inconclusive, not failed). `scripts/verify-live.js --e2e` was validated against the mock server (6/6 e2e steps). No linter configured (KL-7). |
 | Deadline | Hackathon submission ~19:00 Africa/Accra, 2026-10-28. Feature freeze 18:00. |
@@ -78,6 +78,10 @@ Single source of truth for project state. Read top to bottom at the start of eve
 - **Decision:** company text is retrieved like documents (FAQ boosted, profile excerpt only when relevant), never pasted wholesale into prompts; `tone` is applied to the knowledge and explanation prompts.
 - **Verified live** (real Gemma, Khaya, logs): formal tone applied; opening hours answered from the profile; cash-on-delivery from the FAQ; test run hidden from lists; checklist moved to ready. The demo workspace in `.data/helply.db` now holds that profile and FAQ.
 
+### 2026-10-28 (inbox, issues, playbooks, rules, gaps, quality)
+- **Built:** `GET /v1/inbox/counts`, conversation assignment, issues (derived from ticket fingerprints, regression reopens, export), playbooks (+suggestions; wording injected for cited matching lines; `alwaysHandoff`), handoff rules (keyword/account-issue/low-confidence handovers; `human_request` always on), knowledge gaps (clustered, resolve to FAQ), message feedback and quality summary. Migration `004`. 18 operations promoted; 14 planned remain.
+- **Decision:** handoff rules can only increase handovers, never suppress one; playbook wording never applies to lines the model did not cite.
+
 ## Known Limitations
 
 1. ~~In-memory store.~~ Resolved: SQLite (`HELPLY_DB_PATH`, default `.data/helply.db` for `npm start`). Tests use `:memory:`.
@@ -124,6 +128,11 @@ Single source of truth for project state. Read top to bottom at the start of eve
 38. The onboarding `identity` step is satisfied by a minted token or any verified customer conversation, which proves the token path was used, not that the company's own backend signs correctly. The customer test uses a token Helply signs itself.
 39. FAQ matching is keyword overlap like documents (no embeddings); paraphrased questions may miss. Knowledge-gap capture (planned) is the safety net.
 
+40. `outsideHours` handoff option is stored but not enforced (needs business-hours parsing from the profile); `cap_reached`/`outside_hours` relay suppressions are still never emitted.
+41. Issues have no stored history of status changes beyond the audit log; severity is a simple heuristic; `notify-fixed` (needs a way to message customers outside a live chat) is not built.
+42. Knowledge-gap clustering is keyword-based (first 8 distinct words, sorted): paraphrases with different words create separate gaps.
+43. Not live-tested this round with real Gemma (covered by fakes); the playbook wording and rule paths should be tried once against the real model.
+
 ## Next Steps
 
 1. ~~`git init -b main`, first commit.~~ `69e08d6`.
@@ -153,6 +162,9 @@ Single source of truth for project state. Read top to bottom at the start of eve
 - **Handover (later same day):** brand kit + 4 handover docs + `dev:mock` script added (see Decisions).
 - **Processes:** the dev API (scripted fakes), Vite dev server and preview server started this session were stopped; none left running.
 - **Commits:** `69e08d6` (v1.0 as found) ... `2519d06` (v1.1 code, dashboard, fixes, docs). Docs and this file: `e813de0`.
+
+### 2026-10-28 (quality features)
+- Tests 116/116 (+6 files of cases in `test/quality.test.js`). **Not done:** website indexing, customers, notify-fixed, public-key identity, password reset; any frontend pages.
 
 ### 2026-10-28 (onboarding)
 - **Built:** see Decisions "onboarding, business profile, FAQ". Tests 110/110 (+8), spec promoted 11 operations (32 planned remain). Existing tests now register workspaces already live via a helper option; relay resume test uses the repository because the API gate applies. **Not done:** playbooks, handoff rules, inbox counts/assign, issues, gaps, quality, public-key identity, password reset, customers, site crawler.

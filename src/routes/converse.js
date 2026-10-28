@@ -34,7 +34,7 @@ module.exports = (ctx) => {
     const result = await agent.handleMessage({
       text: message, token: identity ? token : undefined, languageHint,
       ctx: {
-        store: ctx.store.forWorkspace(w.id), cls: ctx.logSourceFor(w), jwtSecret: ctx.identitySecret(w), roundTripThreshold: settings.escalationThreshold, tone: repo.getBusinessProfile(w.id).tone,
+        store: ctx.store.forWorkspace(w.id), cls: ctx.logSourceFor(w), jwtSecret: ctx.identitySecret(w), roundTripThreshold: settings.escalationThreshold, tone: repo.getBusinessProfile(w.id).tone, playbooks: repo.listPlaybooks(w.id), rules: repo.getHandoffRules(w.id),
         history, conversationId: conv.id, visitorId,
         audit: ({ action, detail }) => repo.addAudit(w.id, { actorType: "customer", actorId: customerId, action, detail: test ? { ...detail, test: true } : detail }),
       },
@@ -54,6 +54,10 @@ module.exports = (ctx) => {
       firstResponseMs: conv.firstResponseMs ?? result.trace[result.trace.length - 1]?.ms ?? null, customerName: customerName || conv.customerName,
     });
 
+    // A question nobody could answer is a knowledge gap, unless this was a test run or the customer asked for a person.
+    if (!test && result.trace.some((t) => t.step === "knowledge" && t.answered === false) && result.understanding.intent !== "human_request") {
+      repo.recordGap(w.id, { question: result.understanding.english, language: lang, conversationId: conv.id });
+    }
     if (result.ticketId) {
       const t = repo.getTicket(w.id, result.ticketId);
       notify(w.id, "ticket.created", { ticket: t });

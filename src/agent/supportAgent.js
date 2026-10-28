@@ -71,11 +71,22 @@ const createSupportAgent = ({ config, llm, language, store, fetchImpl = fetch, n
     return { text: cleanText(r.text), sources: chunks.map((c) => c.title) };
   };
 
-  const explainFromLogs = async (english, ev, tone) => {
+  const globToRe = (g) => new RegExp(`^${String(g).replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*")}$`, "i");
+  /** Playbook matches: exact error code on an evidence line, optionally narrowed by a glob on its path. */
+  const matchPlaybooks = (playbooks = [], lines = []) => {
+    const out = [];
+    for (const l of lines) {
+      const pb = playbooks.find((p) => p.enabled && l.error?.code === p.errorCode && (!p.pathPattern || globToRe(p.pathPattern).test(l.path || "")));
+      if (pb) out.push({ lineId: l.id, pb });
+    }
+    return out;
+  };
+
+  const explainFromLogs = async (english, ev, tone, wording = []) => {
     const ids = new Set(ev.lines.map((l) => l.id));
     const r = await llm.generate({
       system: P.EXPLAIN,
-      user: `<customer_message>${P.escape(english)}</customer_message>\n<log_evidence>\n${ev.lines.map((l) => JSON.stringify(l)).join("\n")}\n</log_evidence>${toneTag(tone)}`,
+      user: `<customer_message>${P.escape(english)}</customer_message>\n<log_evidence>\n${ev.lines.map((l) => JSON.stringify(l)).join("\n")}\n</log_evidence>${wording.length ? `\n<approved_wording>\n${wording.map((w) => `${w.lineId}: ${P.escape(w.pb.customerWording)}`).join("\n")}\n</approved_wording>` : ""}${toneTag(tone)}`,
       json: true,
       maxOutputTokens: 600,
     });
@@ -141,10 +152,16 @@ const createSupportAgent = ({ config, llm, language, store, fetchImpl = fetch, n
     let requiresAuth = false;
     let needsHuman = false;
 
-    if (u.intent === "human_request") {
+    // Company handoff rules run before any lookup: they can only make the AI hand over MORE, never less.
+    const rules = ctx.rules || {};
+    const lowered = `${message} ${english}`.toLowerCase();
+    const hitKeyword = (rules.keywords || []).find((k) => k && lowered.includes(String(k).toLowerCase()));
+    const ruleHandoff = hitKeyword ? `keyword "${hitKeyword}"` : u.intent === "account_issue" && (rules.alwaysHandoffIntents || []).includes("account_issue") ? "account issues" : null;
+
+    if (u.intent === "human_request" || ruleHandoff) {
       replyEnglish = FALLBACK.handoff;
       needsHuman = true;
-      ticket = S.createTicket({ conversationId, title: "Customer asked for a person", userId: identity.ok ? identity.claims.userId : null, language: u.language, customerMessage: english, replyEnglish, status: "needs_human" });
+      ticket = S.createTicket({ conversationId, title: ruleHandoff ? `Handoff rule: ${ruleHandoff}` : "Customer asked for a person", userId: identity.ok ? identity.claims.userId : null, language: u.language, customerMessage: english, replyEnglish, status: "needs_human" });
     } else if (u.intent === "account_issue") {
       if (!identity.ok) {
         replyEnglish = FALLBACK.signIn;
@@ -177,7 +194,13 @@ const createSupportAgent = ({ config, llm, language, store, fetchImpl = fetch, n
           needsHuman = true;
           ticket = S.createTicket({ conversationId, title: "No matching activity found", userId: identity.claims.userId, language: u.language, customerMessage: english, replyEnglish, status: "needs_human" });
         } else {
-          const ex = await explainFromLogs(english, ev, ctx.tone);
+          const matches = matchPlaybooks(ctx.playbooks, ev.lines);
+          const ex = await explainFromLogs(english, ev, ctx.tone, matches);
+          if (ex.found) {
+            const cites = new Set(ex.citedLines);
+            if (matches.some((m) => cites.has(m.lineId) && m.pb.alwaysHandoff)) ex.needsHuman = true;
+            if (typeof rules.minConfidence === "number" && ex.confidence < rules.minConfidence) ex.needsHuman = true;
+          }
           mark("explain", { found: ex.found, model: llm.model });
           if (ex.found) {
             evidence = ev.lines.filter((l) => ex.citedLines.includes(l.id));

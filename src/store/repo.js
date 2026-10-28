@@ -447,6 +447,186 @@ const createRepo = (db) => {
   const hasVerifiedCustomerActivity = (ws) =>
     Boolean(q("SELECT 1 FROM audit_events WHERE workspace_id = ? AND action = 'identity_token_minted' LIMIT 1").get(need(ws)) || q("SELECT 1 FROM conversations WHERE workspace_id = ? AND customer_id IS NOT NULL AND is_test = 0 LIMIT 1").get(ws));
 
+  // ── inbox ─────────────────────────────────────────────────────────────
+  const inboxCounts = (ws, userId) => {
+    need(ws);
+    const c = (extra, ...a) => q(`SELECT COUNT(*) AS n FROM conversations WHERE workspace_id = ? AND is_test = 0 ${extra}`).get(ws, ...a).n;
+    return {
+      needsHuman: c("AND status = 'needs_human'"),
+      mine: userId ? c("AND status = 'human' AND assignee_id = ?", userId) : 0,
+      unassigned: c("AND status IN ('needs_human','human') AND assignee_id IS NULL"),
+      aiActive: c("AND status = 'ai'"),
+      resolvedToday: c("AND status = 'resolved' AND updated_at >= ?", `${now().slice(0, 10)}T00:00:00.000Z`),
+    };
+  };
+
+  // ── issues (root causes grouped across customers; derived from tickets) ──
+  const issueRows = (ws) => q(
+    `SELECT fingerprint, COUNT(*) AS count, COUNT(DISTINCT user_id) AS affected, MIN(created_at) AS first_seen, MAX(created_at) AS last_seen,
+            GROUP_CONCAT(id) AS ticket_ids, MAX(seq) AS latest_seq
+     FROM tickets WHERE workspace_id = ? AND is_test = 0 AND fingerprint IS NOT NULL GROUP BY fingerprint`
+  ).all(need(ws));
+  const shapeIssue = (ws, r) => {
+    const latest = q("SELECT root_cause_json, evidence_json FROM tickets WHERE workspace_id = ? AND seq = ?").get(ws, r.latest_seq);
+    const rc = parse(latest?.root_cause_json, {});
+    const st = q("SELECT * FROM issue_state WHERE workspace_id = ? AND fingerprint = ?").get(ws, r.fingerprint);
+    let status = st?.status || "open";
+    if (status === "fixed" && st.fixed_at && r.last_seen > st.fixed_at) status = "open"; // regression: it happened again after the fix
+    const text = (rc.summary || "").toLowerCase();
+    const severity = r.count >= 10 || r.affected >= 5 ? "high" : r.count >= 3 ? "normal" : "low";
+    return {
+      id: `iss_${r.fingerprint}`, summary: rc.summary || "Unexplained issue", suggestedFix: rc.suggestedFix || null, status, severity, count: r.count, affectedCustomers: r.affected,
+      firstSeen: r.first_seen, lastSeen: r.last_seen, assigneeId: st?.assignee_id || null, ticketIds: r.ticket_ids.split(",").sort().reverse(), fixedAt: st?.fixed_at || null, _text: text, _evidence: parse(latest?.evidence_json, []),
+    };
+  };
+  const strip = ({ _text, _evidence, ...o }) => o; // eslint-disable-line no-unused-vars
+  const listIssues = (ws, { status, q: text, limit, cursor } = {}) => {
+    let all = issueRows(ws).map((r) => shapeIssue(ws, r));
+    if (status) all = all.filter((i) => i.status === status);
+    if (text) all = all.filter((i) => i._text.includes(String(text).toLowerCase()));
+    all.sort((a, b) => (a.lastSeen < b.lastSeen ? 1 : -1));
+    const lim = clampLimit(limit);
+    const off = Number(cursor) || 0;
+    const pageRows = all.slice(off, off + lim);
+    return { data: pageRows.map(strip), nextCursor: off + lim < all.length ? String(off + lim) : null };
+  };
+  const getIssue = (ws, id) => {
+    const fp = String(id).replace(/^iss_/, "");
+    const r = issueRows(ws).find((x) => x.fingerprint === fp);
+    if (!r) return null;
+    const i = shapeIssue(ws, r);
+    const notes = i.ticketIds.flatMap((t) => listNotes(ws, t));
+    return { ...strip(i), evidence: i._evidence, notes };
+  };
+  const updateIssue = (ws, id, { status, assigneeId }) => {
+    const cur = getIssue(ws, id);
+    if (!cur) return null;
+    const fp = String(id).replace(/^iss_/, "");
+    const st = q("SELECT * FROM issue_state WHERE workspace_id = ? AND fingerprint = ?").get(ws, fp);
+    const nextStatus = status ?? cur.status;
+    const fixedAt = nextStatus === "fixed" ? (cur.status === "fixed" ? cur.fixedAt : now()) : null;
+    q(`INSERT INTO issue_state (workspace_id, fingerprint, status, assignee_id, fixed_at, updated_at) VALUES (?,?,?,?,?,?)
+       ON CONFLICT(workspace_id, fingerprint) DO UPDATE SET status = excluded.status, assignee_id = excluded.assignee_id, fixed_at = excluded.fixed_at, updated_at = excluded.updated_at`)
+      .run(ws, fp, nextStatus, assigneeId === undefined ? (st?.assignee_id ?? null) : assigneeId, fixedAt, now());
+    const { evidence, notes, ...issue } = getIssue(ws, id); // eslint-disable-line no-unused-vars
+    return issue;
+  };
+
+  // ── playbooks ─────────────────────────────────────────────────────────
+  const toPlaybook = (r) => r && { id: r.id, errorCode: r.error_code, pathPattern: r.path_pattern, title: r.title, customerWording: r.customer_wording, internalNote: r.internal_note, ownerTeam: r.owner_team, severity: r.severity, alwaysHandoff: Boolean(r.always_handoff), enabled: Boolean(r.enabled), createdAt: r.created_at, updatedAt: r.updated_at };
+  const getPlaybook = (ws, id) => toPlaybook(q("SELECT * FROM playbooks WHERE workspace_id = ? AND id = ?").get(need(ws), String(id)));
+  const listPlaybooks = (ws) => q("SELECT * FROM playbooks WHERE workspace_id = ? ORDER BY error_code, created_at").all(need(ws)).map(toPlaybook);
+  const createPlaybook = (ws, p) => {
+    const id = newId("pb");
+    const t = now();
+    q("INSERT INTO playbooks (id, workspace_id, error_code, path_pattern, title, customer_wording, internal_note, owner_team, severity, always_handoff, enabled, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)")
+      .run(id, need(ws), p.errorCode, p.pathPattern ?? null, p.title, p.customerWording, p.internalNote ?? null, p.ownerTeam ?? null, p.severity || "normal", p.alwaysHandoff ? 1 : 0, p.enabled === false ? 0 : 1, t, t);
+    return getPlaybook(ws, id);
+  };
+  const updatePlaybook = (ws, id, patch) => {
+    const cur = getPlaybook(ws, id);
+    if (!cur) return null;
+    const m = { ...cur, ...patch };
+    q("UPDATE playbooks SET error_code = ?, path_pattern = ?, title = ?, customer_wording = ?, internal_note = ?, owner_team = ?, severity = ?, always_handoff = ?, enabled = ?, updated_at = ? WHERE workspace_id = ? AND id = ?")
+      .run(m.errorCode, m.pathPattern, m.title, m.customerWording, m.internalNote, m.ownerTeam, m.severity, m.alwaysHandoff ? 1 : 0, m.enabled ? 1 : 0, now(), ws, id);
+    return getPlaybook(ws, id);
+  };
+  const deletePlaybook = (ws, id) => q("DELETE FROM playbooks WHERE workspace_id = ? AND id = ?").run(need(ws), String(id)).changes > 0;
+  const playbookSuggestions = (ws) => {
+    const have = new Set(listPlaybooks(ws).map((p) => p.errorCode));
+    const seen = new Map();
+    for (const t of q("SELECT id, evidence_json, created_at FROM tickets WHERE workspace_id = ? AND is_test = 0 ORDER BY seq DESC LIMIT 300").all(need(ws))) {
+      for (const l of parse(t.evidence_json, [])) {
+        const code = l?.error?.code;
+        if (!code || have.has(code)) continue;
+        const e = seen.get(code) || { errorCode: code, count: 0, lastSeen: t.created_at, sampleTicketIds: [] };
+        e.count += 1;
+        if (e.sampleTicketIds.length < 3 && !e.sampleTicketIds.includes(t.id)) e.sampleTicketIds.push(t.id);
+        seen.set(code, e);
+      }
+    }
+    return [...seen.values()].sort((a, b) => b.count - a.count).slice(0, 20);
+  };
+
+  // ── handoff rules ─────────────────────────────────────────────────────
+  const HANDOFF_DEFAULTS = { alwaysHandoffIntents: ["human_request"], keywords: [], minConfidence: 0.6, outsideHours: "ai_only", notifyEmail: null };
+  const getHandoffRules = (ws) => {
+    const r = q("SELECT rules_json FROM handoff_rules WHERE workspace_id = ?").get(need(ws));
+    return { ...HANDOFF_DEFAULTS, ...parse(r?.rules_json, {}) };
+  };
+  const putHandoffRules = (ws, rules) => {
+    q("INSERT INTO handoff_rules (workspace_id, rules_json, updated_at) VALUES (?,?,?) ON CONFLICT(workspace_id) DO UPDATE SET rules_json = excluded.rules_json, updated_at = excluded.updated_at").run(need(ws), JSON.stringify(rules), now());
+    return getHandoffRules(ws);
+  };
+
+  // ── knowledge gaps ────────────────────────────────────────────────────
+  const clusterKey = (text) => [...new Set(tokenize(text))].sort().slice(0, 8).join(" ");
+  const toGap = (r) => r && { id: r.id, question: r.question, count: r.count, language: r.language, firstSeen: r.first_seen, lastSeen: r.last_seen, status: r.status, sampleConversationIds: parse(r.conversations_json, []) };
+  const recordGap = (ws, { question, language = "en", conversationId = null }) => {
+    const key = clusterKey(question);
+    if (!key) return null;
+    const cur = q("SELECT * FROM knowledge_gaps WHERE workspace_id = ? AND cluster_key = ? AND status = 'open'").get(need(ws), key);
+    if (cur) {
+      const convs = parse(cur.conversations_json, []);
+      if (conversationId && !convs.includes(conversationId) && convs.length < 5) convs.push(conversationId);
+      q("UPDATE knowledge_gaps SET count = count + 1, last_seen = ?, conversations_json = ? WHERE id = ?").run(now(), JSON.stringify(convs), cur.id);
+      return getGap(ws, cur.id);
+    }
+    const id = newId("gap");
+    const t = now();
+    q("INSERT INTO knowledge_gaps (id, workspace_id, cluster_key, question, language, conversations_json, first_seen, last_seen) VALUES (?,?,?,?,?,?,?,?)").run(id, ws, key, scrubString(question).slice(0, 300), language, JSON.stringify(conversationId ? [conversationId] : []), t, t);
+    return getGap(ws, id);
+  };
+  const getGap = (ws, id) => toGap(q("SELECT * FROM knowledge_gaps WHERE workspace_id = ? AND id = ?").get(need(ws), String(id)));
+  const listGaps = (ws, { status, limit, cursor } = {}) => {
+    const where = ["workspace_id = ?"];
+    const args = [need(ws)];
+    where.push("status = ?"); args.push(status || "open");
+    const lim = clampLimit(limit);
+    const off = Number(cursor) || 0;
+    const rows = q(`SELECT * FROM knowledge_gaps WHERE ${where.join(" AND ")} ORDER BY count DESC, last_seen DESC LIMIT ? OFFSET ?`).all(...args, lim + 1, off);
+    return { data: rows.slice(0, lim).map(toGap), nextCursor: rows.length > lim ? String(off + lim) : null };
+  };
+  const setGapStatus = (ws, id, status) => (q("UPDATE knowledge_gaps SET status = ? WHERE workspace_id = ? AND id = ?").run(status, need(ws), String(id)).changes ? getGap(ws, id) : null);
+
+  // ── feedback and quality ──────────────────────────────────────────────
+  const rateMessage = (ws, messageId, userId, { rating, reason = null, note = null }) => {
+    const m = getMessage(ws, messageId);
+    if (!m || m.role !== "ai") return false;
+    q(`INSERT INTO message_feedback (workspace_id, message_id, user_id, rating, reason, note, created_at) VALUES (?,?,?,?,?,?,?)
+       ON CONFLICT(message_id, user_id) DO UPDATE SET rating = excluded.rating, reason = excluded.reason, note = excluded.note, created_at = excluded.created_at`)
+      .run(ws, messageId, userId, rating, reason, note ? scrubString(note).slice(0, 500) : null, now());
+    return true;
+  };
+  const qualitySummary = (ws, { from, to } = {}) => {
+    need(ws);
+    const { f, t } = range(from, to);
+    const fb = q("SELECT rating, COUNT(*) AS n FROM message_feedback WHERE workspace_id = ? AND created_at >= ? AND created_at <= ? GROUP BY rating").all(ws, f, t);
+    const good = fb.find((x) => x.rating === "good")?.n || 0;
+    const rated = fb.reduce((n, x) => n + x.n, 0);
+    const msgs = q("SELECT meta_json, review_recommended FROM messages WHERE workspace_id = ? AND role = 'ai' AND created_at >= ? AND created_at <= ? AND conversation_id NOT IN (SELECT id FROM conversations WHERE workspace_id = ? AND is_test = 1)").all(ws, f, t, ws);
+    let fromKnowledge = 0; let fromLogs = 0; let flagged = 0;
+    const reasons = new Map();
+    for (const m of msgs) {
+      const meta = parse(m.meta_json, {});
+      const trace = meta.trace || [];
+      const kb = trace.find((x) => x.step === "knowledge");
+      const ex = trace.find((x) => x.step === "explain");
+      if (kb?.answered) fromKnowledge += 1;
+      if (ex?.found) fromLogs += 1;
+      if (m.review_recommended) flagged += 1;
+      if (meta.needsHuman) {
+        const reason = meta.understanding?.intent === "human_request" ? "customer_asked" : kb && !kb.answered ? "knowledge_miss" : ex && !ex.found ? "no_evidence" : trace.find((x) => x.step === "logs")?.error ? "logs_unavailable" : "other";
+        reasons.set(reason, (reasons.get(reason) || 0) + 1);
+      }
+    }
+    const r2 = (n) => Math.round(n * 100) / 100;
+    return {
+      ratedReplies: rated, goodRate: rated ? r2(good / rated) : 0, answeredFromKnowledge: msgs.length ? r2(fromKnowledge / msgs.length) : 0, answeredFromLogs: msgs.length ? r2(fromLogs / msgs.length) : 0,
+      flaggedTranslations: flagged, handoffReasons: [...reasons.entries()].map(([reason, count]) => ({ reason, count })).sort((a, b) => b.count - a.count),
+    };
+  };
+
   // ── channels (ChatFlow) ───────────────────────────────────────────────
   const toChannel = (r) => r && { id: r.id, kind: r.kind, label: r.label, externalId: r.external_id, status: r.status, lastSeenAt: r.last_seen_at, keyPrefix: r.key_prefix, createdAt: r.created_at };
   const createChannel = (ws, { kind, label, externalId, keyHash, keyPrefix }) => {
@@ -560,6 +740,8 @@ const createRepo = (db) => {
     addAudit, listAudit,
     createWebhook, getWebhook, getWebhookSecretEnc, listWebhooks, listWebhooksForEvent, deleteWebhook, addDelivery, updateDelivery, listDeliveries,
     getBusinessProfile, putBusinessProfile, createFaq, getFaq, countFaqs, faqExists, listFaqs, updateFaq, deleteFaq, getOnboardingState, recordLogTest, recordCustomerTest, countKnowledgeDocs, hasVerifiedCustomerActivity,
+    inboxCounts, listIssues, getIssue, updateIssue, getPlaybook, listPlaybooks, createPlaybook, updatePlaybook, deletePlaybook, playbookSuggestions, getHandoffRules, putHandoffRules,
+    recordGap, getGap, listGaps, setGapStatus, rateMessage, qualitySummary,
     createChannel, getChannel, findChannelByExternalId, listChannels, getChannelByKeyHash, rotateChannelKey, deleteChannel, touchChannel, getChannelConversation, linkChannelConversation,
     analyticsSummary, analyticsTimeseries, eraseCustomer, purgeOlderThan,
   };

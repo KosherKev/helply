@@ -1,6 +1,6 @@
 # Admin dashboard spec (the team dashboard under `/app`)
 
-For the developer building the dashboard in parallel with the backend. Read with `docs/handover/DASHBOARD_AND_DEMO.md` (what exists and the security rules), `docs/openapi.yaml` (every route; planned ones are `x-planned`), `docs/API_V1_2_PLAN.md` (planned behaviour) and `docs/brand/README.md` (look and voice; it overrides the older colours in `FRONTEND_SPEC.md`). Run `npm run dev:mock`: real routes work, planned routes answer with fixtures. **Onboarding, business profile, FAQ, channels and the relay are real now**: use the real backend (log in as `owner@kwikpay.demo`). New workspaces you register start with the AI paused, by design; the demo workspace is live.
+For the developer building the dashboard in parallel with the backend. Read with `docs/handover/DASHBOARD_AND_DEMO.md` (what exists and the security rules), `docs/openapi.yaml` (every route; planned ones are `x-planned`), `docs/API_V1_2_PLAN.md` (planned behaviour) and `docs/brand/README.md` (look and voice; it overrides the older colours in `FRONTEND_SPEC.md`). Run `npm run dev:mock`: real routes work, planned routes answer with fixtures. **Onboarding, business profile, FAQ, channels, relay, inbox counts/assign, issues, playbooks, handoff rules, knowledge gaps and quality are real now** (still mock: website indexing, customers, notify-fixed, public-key identity, password reset): use the real backend (log in as `owner@kwikpay.demo`). New workspaces you register start with the AI paused, by design; the demo workspace is live.
 
 Legend: **Built** = backend route exists and the page exists. **Page todo** = backend exists, page not built or incomplete. **Planned** = backend route does not exist yet (use the mock). Priorities P0/P1/P2 match `x-priority` in the spec.
 
@@ -41,16 +41,16 @@ Top bar: workspace name; **AI status** switch (Live / Paused; Paused sends every
 | Work | Inbox | `/app/inbox` (replaces Conversations) | agent | Page todo + Planned counts (P0) |
 | | Conversation | `/app/inbox/:id` | agent | Built (move route) |
 | | Tickets, ticket | `/app/tickets`, `/:id` | agent | Built |
-| | Issues, issue | `/app/issues`, `/:id` | agent | Planned P1 |
+| | Issues, issue | `/app/issues`, `/:id` | agent | Backend built; page todo |
 | Quality | Overview | `/app` | agent | Built |
 | | Review queue | `/app/review` | agent | Built |
-| | Knowledge gaps | `/app/quality/gaps` | agent (resolve: admin) | Planned P1 |
-| | AI quality | `/app/quality` | agent | Planned P1 |
+| | Knowledge gaps | `/app/quality/gaps` | agent (resolve: admin) | Backend built; page todo |
+| | AI quality | `/app/quality` | agent | Backend built; page todo |
 | Business | Business details | `/app/business` | agent (edit: admin) | Backend built; page todo |
 | | FAQ | `/app/business/faq` | agent (edit: admin) | Backend built (incl. CSV import); page todo |
 | | Documents and sites | `/app/business/documents` | agent (edit: admin) | Built (documents) / Planned P1 (sites) |
-| | Playbooks | `/app/business/playbooks` | agent (edit: admin) | Planned P1 |
-| | Handoff rules | `/app/business/handoff` | agent (edit: admin) | Planned P1 |
+| | Playbooks | `/app/business/playbooks` | agent (edit: admin) | Backend built; page todo |
+| | Handoff rules | `/app/business/handoff` | agent (edit: admin) | Backend built; page todo (outside-hours option is stored but not enforced yet) |
 | Setup | Onboarding | `/app/onboarding` | agent (act: admin) | Backend built; page todo |
 | | Connections | `/app/connections` (Logs, Identity, Chat channel tabs) | admin | Built (logs, identity, **chat channel: backend built**, page todo) |
 | | Developers | `/app/developers` | admin | Built |
