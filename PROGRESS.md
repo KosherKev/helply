@@ -7,10 +7,10 @@ Single source of truth for project state. Read top to bottom at the start of eve
 | Field | Value |
 |---|---|
 | Current phase | **v1.1 built** (API + OpenAPI + web app). Remaining before submission: keys, live-service verification, deploy, demo rehearsal, Devpost write-up. |
-| Blocking issues | None hard-blocking in code. Needs the user's keys (KL-2, KL-3), a native-speaker Twi sample (KL-17) and the committed `userId` filter in `../central-logging-service` (KL-9). |
-| Next action | Set `.env` (Gemma, Khaya, CLS keys), `npm run check:khaya`, `npm run seed`, run `docs/DEMO_SCRIPT.md` end to end against live services; then deploy. |
-| Repo state | Git repository on `main`. v1.1 code in `2519d06`, docs and this file in `e813de0`. `../central-logging-service` still has its `userId` filter **uncommitted** (not touched by this session). |
-| Verified running | `npm test`: **74/74 pass** (Node 22.12, `--experimental-sqlite`). `cd web && npm run build` (tsc + vite + prerender): clean. Lighthouse mobile on the production build of `/`: **performance 96, accessibility 100, best practices 100**, no console errors. UI exercised in the in-app browser against the real API with **scripted fakes for Gemma, Khaya and the log service** (login, overview, conversations, takeover, translated reply preview, tickets, connections test, API key, webhook SSRF refusal, invite, audit), and checked at 375px (no horizontal scroll). **Not verified against live Gemma, Khaya or central-logging-service.** No linter configured (KL-7). |
+| Blocking issues | `GEMMA_API_KEY` is empty in `.env` (no model call can succeed). Live services were never verified (the build sandbox cannot reach Khaya or the user's localhost log service). `userId` filter in `../central-logging-service` still uncommitted (KL-9). Twi sample message still needed (KL-17). |
+| Next action | **Fill `GEMMA_API_KEY` (it is EMPTY in `.env`)**, then on the user's Mac: `npm run verify:live` and `npm run verify:live -- --e2e` (server running); fix the first FAIL. Then deploy and rehearse `docs/DEMO_SCRIPT.md`. |
+| Repo state | Git repository on `main`, last commit `5cf6745`. **Uncommitted from the 2026-10-28 live-verification session:** `src/loadEnv.js`, `test/loadEnv.test.js`, `scripts/verify-live.js`, edits to `src/server.js`, `scripts/seed-logs.js`, `scripts/check-khaya.js`, `package.json`, this file. `../central-logging-service` `userId` filter still uncommitted. |
+| Verified running | `npm test`: **77/77 pass** (Node 22.12, `--experimental-sqlite`). `cd web && npm run build` (tsc + vite + prerender): clean. Lighthouse mobile on the production build of `/`: **performance 96, accessibility 100, best practices 100**, no console errors. UI exercised in the in-app browser against the real API with **scripted fakes for Gemma, Khaya and the log service** (login, overview, conversations, takeover, translated reply preview, tickets, connections test, API key, webhook SSRF refusal, invite, audit), and checked at 375px (no horizontal scroll). **Not verified against live Gemma, Khaya or central-logging-service** (attempted from the build sandbox on 2026-10-28: network blocked, so inconclusive, not failed). `scripts/verify-live.js --e2e` was validated against the mock server (6/6 e2e steps). No linter configured (KL-7). |
 | Deadline | Hackathon submission ~19:00 Africa/Accra, 2026-10-28. Feature freeze 18:00. |
 
 ## Decisions log
@@ -41,6 +41,11 @@ Single source of truth for project state. Read top to bottom at the start of eve
 ### 2026-10-28 (handover)
 - **Frontend handed to others; Kevin goes backend-only.** Handover docs in `docs/handover/` (index, landing page, dashboard+demo, language/demo/write-up). `npm run dev:mock` (`scripts/dev-mock-server.js`) runs the real app with scripted fakes so they need no keys.
 - **Brand kit added** to `docs/brand/` (guide HTML + SVG/PNG assets; three SVGs copied to `web/public/brand/`). **The guide's palette (Helply Blue `#2563EB`, Deep Navy, Ice Blue) and Plus Jakarta Sans differ from what the web app currently uses (green/gold, Space Grotesk).** Not re-skinned yet: it is the first job in both frontend handover docs. The guide has no gold/green, so status/cited-line colours need a designer decision (suggestion in `docs/brand/README.md`).
+
+### 2026-10-28 (live-verification prep)
+- **`.env` is now actually loaded.** Nothing in the repo read `.env` (no `--env-file`, no dotenv), so keys added there were ignored by `npm start`, `seed` and `check:khaya`. Added a dependency-free loader (`src/loadEnv.js`; the real environment wins; returns names only). It runs in the server's `require.main` block and in the scripts, not on import, so tests never read the developer's real keys.
+- **`npm run verify:live`** is the single live check (env names, Gemma model-id discovery by listing the key's models, Khaya translate/TTS, log service incl. whether the `userId` filter is active, optional `--e2e` demo story). It must be run on the user's machine: the build sandbox cannot reach Khaya or localhost services. It never prints secrets.
+- **Did not commit from the build sandbox:** git there needs delete permission across the user's whole GitHub folder; commit manually (see Changelog).
 
 ## Known Limitations
 
@@ -73,6 +78,10 @@ Single source of truth for project state. Read top to bottom at the start of eve
 28. The web app does not follow the brand guide yet (see Decisions, handover). `FRONTEND_SPEC.md` §1 is superseded by `docs/brand/`.
 27. No end-to-end browser test suite; UI behaviour was verified manually in the in-app browser. Frontend has no unit tests.
 
+29. ~~`.env` was never loaded by the server or scripts.~~ Resolved this session (`src/loadEnv.js`, tested). Existing deployments must still set real environment variables.
+30. `GEMMA_API_KEY` is empty in the developer's `.env`. Live Gemma, Khaya and log-service verification (KL-2, KL-3, KL-13, KL-14) is **still pending**; the build sandbox cannot reach them. Use `npm run verify:live`.
+31. `scripts/verify-live.js` e2e step names the seeded demo story (Ama/Kofi, `PAY-8842`) and needs `DEMO_MODE=true` for `POST /v1/demo/token`; it is a demo check, not a production smoke test.
+
 ## Next Steps
 
 1. ~~`git init -b main`, first commit.~~ `69e08d6`.
@@ -102,3 +111,11 @@ Single source of truth for project state. Read top to bottom at the start of eve
 - **Handover (later same day):** brand kit + 4 handover docs + `dev:mock` script added (see Decisions).
 - **Processes:** the dev API (scripted fakes), Vite dev server and preview server started this session were stopped; none left running.
 - **Commits:** `69e08d6` (v1.0 as found) ... `2519d06` (v1.1 code, dashboard, fixes, docs). Docs and this file: `e813de0`.
+
+### 2026-10-28 (later): live-verification prep
+- **Built:** `src/loadEnv.js` + `test/loadEnv.test.js` (3 tests); `.env` loading in `src/server.js`, `scripts/seed-logs.js`, `scripts/check-khaya.js`; `scripts/verify-live.js` + `npm run verify:live`.
+- **Found:** `.env` was never read by any entry point. `GEMMA_API_KEY` is empty. Khaya and the local log service are unreachable from the build sandbox (inconclusive, not a failure).
+- **Broke and fixed (in my own script, found by running it against the mock server):** the e2e capability check wrongly failed when voice was off; the Kofi-scoping check false-positived on the customer's own echoed words. Both fixed; e2e then passed 6/6 against the mock.
+- **Verified:** `npm test` 77/77; `node --check` clean; no leftover processes.
+- **Deliberately not done:** live verification, committing, new endpoints (`/widget.js`, `/docs` page remain unbuilt: KL-10).
+- **Commit:** none (uncommitted). Suggested, one per issue: `git add src/loadEnv.js test/loadEnv.test.js src/server.js scripts/seed-logs.js scripts/check-khaya.js && git commit -m "Load .env in server and scripts"`, then `git add scripts/verify-live.js package.json && git commit -m "Add live verification script"`, then `git add PROGRESS.md && git commit -m "Update PROGRESS"`. Record the hashes here.
