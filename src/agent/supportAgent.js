@@ -34,12 +34,12 @@ const cleanText = (text, max = 400) =>
     .slice(0, max);
 
 const createSupportAgent = ({ config, llm, language, store, fetchImpl = fetch, now = () => Date.now() }) => {
-  const understand = async (message, hint) => {
+  const understand = async (message, hint, history = []) => {
     const fallback = { language: LANGS.has(hint) ? hint : "en", english: message, intent: "general_question", hints: {} };
     try {
       const r = await llm.generate({
         system: P.UNDERSTAND,
-        user: `<customer_message>${P.escape(message)}</customer_message>`,
+        user: `${history.length ? `<conversation_so_far>\n${history.map((h) => `${h.role}: ${P.escape(h.text)}`).join("\n")}\n</conversation_so_far>\n` : ""}<customer_message>${P.escape(message)}</customer_message>`,
         json: true,
         maxOutputTokens: 400,
       });
@@ -56,8 +56,8 @@ const createSupportAgent = ({ config, llm, language, store, fetchImpl = fetch, n
     }
   };
 
-  const answerFromKnowledge = async (english) => {
-    const chunks = store.retrieve(english, 3);
+  const answerFromKnowledge = async (english, scoped) => {
+    const chunks = scoped.retrieve(english, 3);
     if (!chunks.length) return null;
     const knowledge = chunks.map((c) => `[${c.title}] ${P.escape(c.text)}`).join("\n---\n");
     const r = await llm.generate({
@@ -94,9 +94,17 @@ const createSupportAgent = ({ config, llm, language, store, fetchImpl = fetch, n
   };
 
   /**
-   * @param {{text:string, token?:string, languageHint?:string}} input
+   * @param {{text:string, token?:string, languageHint?:string, ctx?:object}} input
+   * `ctx` carries the per-request workspace: { store, cls, jwtSecret, roundTripThreshold, history, conversationId, audit }.
+   * The server derives it from the credential, never from the request body.
    */
-  const handleMessage = async ({ text, token, languageHint } = {}) => {
+  const handleMessage = async ({ text, token, languageHint, ctx = {} } = {}) => {
+    const S = ctx.store || store;
+    const cls = ctx.cls === undefined ? config.cls : ctx.cls;
+    const secret = ctx.jwtSecret === undefined ? config.jwtSecret : ctx.jwtSecret;
+    const threshold = ctx.roundTripThreshold ?? config.roundTripThreshold;
+    const conversationId = ctx.conversationId || null;
+    const audit = ctx.audit || (() => {});
     const t0 = now();
     const trace = [];
     const mark = (step, detail = {}) => trace.push({ step, ms: now() - t0, ...detail });
@@ -106,11 +114,11 @@ const createSupportAgent = ({ config, llm, language, store, fetchImpl = fetch, n
     if (message.length > config.limits.maxMessageChars) throw new HttpError(400, "message_too_long", "Message is too long");
 
     const identity = token
-      ? verify(token, config.jwtSecret, { now: now(), maxAgeSeconds: config.tokenMaxAgeSeconds })
+      ? verify(token, secret, { now: now(), maxAgeSeconds: config.tokenMaxAgeSeconds })
       : { ok: false, reason: "none" };
     mark("identity", { verified: identity.ok, ...(identity.ok ? {} : { reason: identity.reason }) });
 
-    const u = await understand(message, languageHint);
+    const u = await understand(message, languageHint, (ctx.history || []).slice(-6));
     mark("understand", { language: u.language, intent: u.intent, model: llm.model });
 
     let english = u.english;
@@ -134,7 +142,7 @@ const createSupportAgent = ({ config, llm, language, store, fetchImpl = fetch, n
     if (u.intent === "human_request") {
       replyEnglish = FALLBACK.handoff;
       needsHuman = true;
-      ticket = store.createTicket({ title: "Customer asked for a person", userId: identity.ok ? identity.claims.userId : null, language: u.language, customerMessage: english, replyEnglish, status: "needs_human" });
+      ticket = S.createTicket({ conversationId, title: "Customer asked for a person", userId: identity.ok ? identity.claims.userId : null, language: u.language, customerMessage: english, replyEnglish, status: "needs_human" });
     } else if (u.intent === "account_issue") {
       if (!identity.ok) {
         replyEnglish = FALLBACK.signIn;
@@ -143,7 +151,7 @@ const createSupportAgent = ({ config, llm, language, store, fetchImpl = fetch, n
         let ev = null;
         try {
           ev = await buildEvidence({
-            cls: config.cls,
+            cls,
             userId: identity.claims.userId, // verified identity only
             hints: u.hints,
             now: now(),
@@ -152,18 +160,20 @@ const createSupportAgent = ({ config, llm, language, store, fetchImpl = fetch, n
             queryLimit: config.limits.logQueryLimit,
           });
           mark("logs", { fetched: ev.meta.fetched, kept: ev.meta.kept, droppedForScope: ev.meta.droppedForScope });
+          audit({ action: "log_lookup", detail: { userId: identity.claims.userId, conversationId, fetched: ev.meta.fetched, kept: ev.meta.kept, droppedForScope: ev.meta.droppedForScope } });
         } catch (err) {
           mark("logs", { error: err.name });
+          audit({ action: "log_lookup", detail: { userId: identity.claims.userId, conversationId, error: err.name } });
         }
 
         if (!ev) {
           replyEnglish = FALLBACK.logsDown;
           needsHuman = true;
-          ticket = store.createTicket({ title: "Log lookup unavailable", userId: identity.claims.userId, language: u.language, customerMessage: english, replyEnglish, status: "needs_human" });
+          ticket = S.createTicket({ conversationId, title: "Log lookup unavailable", userId: identity.claims.userId, language: u.language, customerMessage: english, replyEnglish, status: "needs_human" });
         } else if (!ev.lines.length) {
           replyEnglish = FALLBACK.noEvidence;
           needsHuman = true;
-          ticket = store.createTicket({ title: "No matching activity found", userId: identity.claims.userId, language: u.language, customerMessage: english, replyEnglish, status: "needs_human" });
+          ticket = S.createTicket({ conversationId, title: "No matching activity found", userId: identity.claims.userId, language: u.language, customerMessage: english, replyEnglish, status: "needs_human" });
         } else {
           const ex = await explainFromLogs(english, ev);
           mark("explain", { found: ex.found, model: llm.model });
@@ -172,7 +182,7 @@ const createSupportAgent = ({ config, llm, language, store, fetchImpl = fetch, n
             rootCause = { summary: ex.rootCause, suggestedFix: ex.suggestedFix, citedLines: ex.citedLines, confidence: ex.confidence };
             replyEnglish = ex.customerReply;
             needsHuman = ex.needsHuman;
-            ticket = store.createTicket({
+            ticket = S.createTicket({ conversationId,
               title: ex.rootCause.slice(0, 120),
               userId: identity.claims.userId,
               language: u.language,
@@ -185,14 +195,14 @@ const createSupportAgent = ({ config, llm, language, store, fetchImpl = fetch, n
           } else {
             replyEnglish = FALLBACK.noEvidence;
             needsHuman = true;
-            ticket = store.createTicket({ title: "Logs did not explain the issue", userId: identity.claims.userId, language: u.language, customerMessage: english, replyEnglish, evidence: ev.lines.slice(0, 5), status: "needs_human" });
+            ticket = S.createTicket({ conversationId, title: "Logs did not explain the issue", userId: identity.claims.userId, language: u.language, customerMessage: english, replyEnglish, evidence: ev.lines.slice(0, 5), status: "needs_human" });
           }
         }
       }
     } else {
       let kb = null;
       try {
-        kb = await answerFromKnowledge(english);
+        kb = await answerFromKnowledge(english, S);
       } catch {
         kb = null;
       }
@@ -202,7 +212,7 @@ const createSupportAgent = ({ config, llm, language, store, fetchImpl = fetch, n
       } else {
         replyEnglish = FALLBACK.handoff;
         needsHuman = true;
-        ticket = store.createTicket({ title: "Question not covered by the knowledge base", userId: identity.ok ? identity.claims.userId : null, language: u.language, customerMessage: english, replyEnglish, status: "needs_human" });
+        ticket = S.createTicket({ conversationId, title: "Question not covered by the knowledge base", userId: identity.ok ? identity.claims.userId : null, language: u.language, customerMessage: english, replyEnglish, status: "needs_human" });
       }
     }
 
@@ -214,7 +224,7 @@ const createSupportAgent = ({ config, llm, language, store, fetchImpl = fetch, n
         reply.text = loc.text;
         const back = await language.toEnglish(loc.text, u.language);
         const sim = round2(similarity(replyEnglish, back.text));
-        roundTrip = { backTranslation: back.text, similarity: sim, reviewRecommended: sim < config.roundTripThreshold, provider: loc.provider };
+        roundTrip = { backTranslation: back.text, similarity: sim, reviewRecommended: sim < threshold, provider: loc.provider };
         mark("translate_out", { provider: loc.provider, similarity: sim });
       } catch {
         mark("translate_out", { error: true });

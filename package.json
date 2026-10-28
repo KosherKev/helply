@@ -5,13 +5,15 @@
   "license": "MIT",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "node --watch src/server.js",
-    "test": "node --test",
+    "start": "node --experimental-sqlite src/server.js",
+    "dev": "node --experimental-sqlite --watch src/server.js",
+    "test": "node --experimental-sqlite --test",
     "seed": "node scripts/seed-logs.js",
     "check:khaya": "node scripts/check-khaya.js"
   },
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=22.5"
+  },
   "dependencies": {
     "express": "^4.21.2"
   }

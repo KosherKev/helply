@@ -8,6 +8,14 @@ const load = (env = process.env) => ({
   port: num(env.PORT, 8787),
   demoMode: env.DEMO_MODE === "true",
   corsOrigin: env.CORS_ORIGIN || "*",
+  appUrl: trimSlash(env.APP_URL) || "http://localhost:5173",
+  dbPath: env.HELPLY_DB_PATH || "", // empty = in-memory (tests); the server entrypoint defaults to .data/helply.db
+  encryptionKey: env.HELPLY_ENCRYPTION_KEY || "",
+  allowSignup: env.ALLOW_SIGNUP === "true" || env.DEMO_MODE === "true",
+  trustProxy: env.TRUST_PROXY === undefined || env.TRUST_PROXY === "" ? false : /^\d+$/.test(env.TRUST_PROXY) ? Number(env.TRUST_PROXY) : env.TRUST_PROXY === "true" ? true : env.TRUST_PROXY,
+  allowInsecureWebhooks: env.ALLOW_INSECURE_WEBHOOKS === "true", // tests / local dev only
+  allowPrivateLogSources: env.ALLOW_PRIVATE_LOG_SOURCES === "true" || env.DEMO_MODE === "true",
+  demoPassword: env.DEMO_PASSWORD || "helply-demo-pass",
   consoleKey: env.CONSOLE_KEY || "",
   jwtSecret: env.HELPLY_JWT_SECRET || "",
   tokenMaxAgeSeconds: num(env.TOKEN_MAX_AGE_SECONDS, 900),
@@ -28,6 +36,7 @@ const load = (env = process.env) => ({
     translatePath: env.KHAYA_TRANSLATE_PATH || "/v1/translate",
   },
   roundTripThreshold: Number(env.ROUND_TRIP_THRESHOLD) > 0 ? Number(env.ROUND_TRIP_THRESHOLD) : 0.4,
+  rate: { supportPerIpPerMin: num(env.RATE_SUPPORT_IP, 30), supportPerWorkspacePerMin: num(env.RATE_SUPPORT_WS, 300), apiPerWorkspacePerMin: num(env.RATE_API_WS, 600), loginPerIpPerMin: num(env.RATE_LOGIN_IP, 10) },
   limits: { maxMessageChars: 1000, evidenceLines: 25, logQueryLimit: 50, maxAudioBytes: 5 * 1024 * 1024 },
 });
 
