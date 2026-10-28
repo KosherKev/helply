@@ -29,13 +29,13 @@ export default function Login({ mode }: { mode: 'login' | 'signup' | 'accept' })
       nav('/app', { replace: true })
     } catch (err) { setError(explain(err)) } finally { setBusy(false) }
   }
-  const field = 'mt-1 w-full rounded-lg border border-line bg-paper px-3 py-2'
+  const field = 'mt-1 w-full rounded-xl border border-line bg-white px-3 py-2'
   const demo = caps.data?.demoLogin
 
   return (
     <main id="main" className="grid min-h-screen place-items-center px-4 py-10">
       <div className="w-full max-w-md">
-        <Link to="/" className="mb-6 block text-center font-display text-2xl text-green">{BRAND}</Link>
+        <Link to="/" aria-label={`${BRAND} home`} className="mb-6 flex justify-center"><img src="/brand/helply-logo-horizontal-color.svg" alt={BRAND} width="160" height="63" className="h-12 w-auto" /></Link>
         <Card className="p-6">
           <h1 className="text-[24px]">{mode === 'login' ? 'Sign in to your team dashboard' : mode === 'signup' ? 'Create your workspace' : 'Join your team'}</h1>
           <form className="mt-5 space-y-4" onSubmit={(e) => void submit(e)}>
@@ -46,10 +46,10 @@ export default function Login({ mode }: { mode: 'login' | 'signup' | 'accept' })
             {error && <ErrorBanner message={error} />}
             <Button type="submit" className="w-full" disabled={busy}>{busy ? 'Please wait…' : mode === 'login' ? 'Sign in' : mode === 'signup' ? 'Create workspace' : 'Join'}</Button>
           </form>
-          {mode === 'login' && caps.data?.signupEnabled && <p className="mt-4 text-center text-sm text-muted">New here? <Link className="font-medium text-green underline" to="/app/signup">Create a workspace</Link></p>}
-          {mode === 'signup' && <p className="mt-4 text-center text-sm text-muted">Already have one? <Link className="font-medium text-green underline" to="/app/login">Sign in</Link></p>}
+          {mode === 'login' && caps.data?.signupEnabled && <p className="mt-4 text-center text-sm text-muted">New here? <Link className="font-medium text-blue underline" to="/app/signup">Create a workspace</Link></p>}
+          {mode === 'signup' && <p className="mt-4 text-center text-sm text-muted">Already have one? <Link className="font-medium text-blue underline" to="/app/login">Sign in</Link></p>}
           {mode === 'login' && demo && (
-            <div className="mt-5 rounded-xl bg-gold-50 p-3 text-sm">
+            <div className="mt-5 rounded-xl bg-warn-50 p-3 text-sm">
               <p className="font-medium">Demo mode</p>
               <p className="mt-0.5 text-muted">Explore the fictional KwikPay Shop team dashboard.</p>
               <Button size="sm" variant="secondary" className="mt-2" disabled={busy} onClick={(e) => void submit(e as unknown as FormEvent, demo)}>Sign in as the demo owner</Button>

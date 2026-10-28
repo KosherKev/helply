@@ -28,12 +28,12 @@ export default function Audit() {
       <PageTitle title="Audit log" />
       <p className="mb-3 max-w-2xl text-sm text-muted">Every customer log lookup is recorded here, with who it was for and how many lines were used. Events cannot be edited or deleted.</p>
       <label htmlFor="aa" className="sr-only">Filter by action</label>
-      <select id="aa" value={action} onChange={(e) => setAction(e.target.value)} className="mb-3 rounded-lg border border-line bg-card px-3 py-2 text-sm"><option value="">All actions</option>{ACTIONS.map((a) => <option key={a}>{a}</option>)}</select>
+      <select id="aa" value={action} onChange={(e) => setAction(e.target.value)} className="mb-3 rounded-xl border border-line bg-white px-3 py-2 text-sm"><option value="">All actions</option>{ACTIONS.map((a) => <option key={a}>{a}</option>)}</select>
       {error && <ErrorBanner message={error} onRetry={() => void load()} />}
       {loading && rows.length === 0 && <Spinner />}
       {!loading && !error && rows.length === 0 && <EmptyState title="No events yet" />}
       {rows.length > 0 && <Card className="overflow-x-auto"><table className="w-full min-w-[640px] text-left text-sm"><caption className="sr-only">Audit events</caption>
-        <thead className="bg-[#f4f2e8] text-xs uppercase tracking-wide text-muted"><tr><th scope="col" className="px-3 py-2">When</th><th scope="col" className="px-3 py-2">Action</th><th scope="col" className="px-3 py-2">By</th><th scope="col" className="px-3 py-2">Detail</th></tr></thead>
+        <thead className="bg-ice text-xs uppercase tracking-wide text-muted"><tr><th scope="col" className="px-3 py-2">When</th><th scope="col" className="px-3 py-2">Action</th><th scope="col" className="px-3 py-2">By</th><th scope="col" className="px-3 py-2">Detail</th></tr></thead>
         <tbody>{rows.map((e) => <tr key={e.id} className="border-t border-line align-top"><td className="whitespace-nowrap px-3 py-2 text-muted">{relTime(e.createdAt)}</td><td className="log-mono px-3 py-2">{e.action}</td><td className="px-3 py-2 text-muted">{e.actorType}</td><td className="log-mono max-w-[360px] break-words px-3 py-2 text-xs"><Plain text={summary(e)} /></td></tr>)}</tbody></table></Card>}
       {cursor && <div className="mt-3 text-center"><Button variant="secondary" disabled={loading} onClick={() => void load(true)}>Load more</Button></div>}
     </div>

@@ -60,15 +60,15 @@ export default function Knowledge() {
         <Card className="mt-5 p-4">
           <h2 className="text-lg">Add a document</h2>
           <div onDragOver={(e) => { e.preventDefault(); setDrag(true) }} onDragLeave={() => setDrag(false)} onDrop={onDrop}
-            className={`mt-3 rounded-xl border-2 border-dashed p-3 ${drag ? 'border-green bg-green-50' : 'border-line'}`}>
+            className={`mt-3 rounded-xl border-2 border-dashed p-3 ${drag ? 'border-blue bg-ice' : 'border-line'}`}>
             <label htmlFor="kt" className="text-sm font-medium">Title</label>
-            <input id="kt" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} className="mt-1 w-full rounded-lg border border-line bg-paper px-3 py-2" />
+            <input id="kt" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} className="mt-1 w-full rounded-xl border border-line bg-white px-3 py-2" />
             <label htmlFor="kx" className="mt-3 block text-sm font-medium">Text (at least 20 characters)</label>
-            <textarea id="kx" rows={7} value={text} onChange={(e) => setText(e.target.value)} className="mt-1 w-full rounded-lg border border-line bg-paper px-3 py-2" />
-            <p className="mt-2 text-xs text-muted">Drop a .txt or .md file here to fill the box, or <button type="button" className="font-medium text-green underline" onClick={() => file.current?.click()}>choose a file</button>. .csv files are uploaded directly.</p>
+            <textarea id="kx" rows={7} value={text} onChange={(e) => setText(e.target.value)} className="mt-1 w-full rounded-xl border border-line bg-white px-3 py-2" />
+            <p className="mt-2 text-xs text-muted">Drop a .txt or .md file here to fill the box, or <button type="button" className="font-medium text-blue underline" onClick={() => file.current?.click()}>choose a file</button>. .csv files are uploaded directly.</p>
             <input ref={file} type="file" accept=".txt,.md,.csv" className="sr-only" aria-label="Choose a file" onChange={(e) => { const f = e.target.files?.[0]; if (f) void loadFile(f); e.target.value = '' }} />
           </div>
-          {msg && <p role={msg.ok ? 'status' : 'alert'} className={`mt-3 text-sm ${msg.ok ? 'text-green' : 'text-red'}`}>{msg.ok ? '✓ ' : '⚠ '}{msg.text}</p>}
+          {msg && <p role={msg.ok ? 'status' : 'alert'} className={`mt-3 text-sm ${msg.ok ? 'text-ok' : 'text-danger'}`}>{msg.ok ? '✓ ' : '⚠ '}{msg.text}</p>}
           <div className="mt-3"><Button disabled={busy || text.trim().length < 20} onClick={() => void add()}>{busy ? 'Saving…' : 'Add document'}</Button></div>
         </Card>
       )}

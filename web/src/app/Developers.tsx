@@ -7,7 +7,7 @@ import { GITHUB_URL } from '../brand'
 import { useAuth } from './auth'
 
 const SCOPES = ['identity:mint', 'conversations:read', 'tickets:read', 'tickets:write']
-const field = 'mt-1 w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm'
+const field = 'mt-1 w-full rounded-xl border border-line bg-white px-3 py-2 text-sm'
 
 function Keys() {
   const { call } = useAuth()
@@ -39,13 +39,13 @@ function Keys() {
           </li>
         ))}</ul>
       )}
-      <fieldset className="mt-4 rounded-xl bg-paper p-3">
+      <fieldset className="mt-4 rounded-xl bg-ice p-3">
         <legend className="px-1 text-sm font-medium">New key</legend>
         <label htmlFor="kn" className="text-sm">Name</label><input id="kn" value={name} onChange={(e) => setName(e.target.value)} className={field} placeholder="Production backend" />
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">{SCOPES.map((s) => <label key={s} className="flex items-center gap-1.5 text-sm"><input type="checkbox" checked={scopes.includes(s)} onChange={(e) => setScopes(e.target.checked ? [...scopes, s] : scopes.filter((x) => x !== s))} />{s}</label>)}</div>
         <div className="mt-3"><Button size="sm" disabled={!name.trim() || scopes.length === 0} onClick={() => void create()}>Create key</Button></div>
       </fieldset>
-      {created && <div role="status" className="mt-3 rounded-xl border border-gold bg-gold-50 p-3 text-sm"><p className="font-medium">Copy your key now. It is shown only once.</p><div className="mt-1 flex items-start gap-2"><code className="log-mono min-w-0 flex-1 break-all text-xs">{created}</code><CopyButton text={created} /></div></div>}
+      {created && <div role="status" className="mt-3 rounded-xl border border-warn bg-warn-50 p-3 text-sm"><p className="font-medium">Copy your key now. It is shown only once.</p><div className="mt-1 flex items-start gap-2"><code className="log-mono min-w-0 flex-1 break-all text-xs">{created}</code><CopyButton text={created} /></div></div>}
       {err && <div className="mt-3"><ErrorBanner message={err} /></div>}
     </Card>
   )
@@ -105,13 +105,13 @@ function Hooks() {
           </li>
         ))}</ul>
       )}
-      <fieldset className="mt-4 rounded-xl bg-paper p-3">
+      <fieldset className="mt-4 rounded-xl bg-ice p-3">
         <legend className="px-1 text-sm font-medium">New webhook</legend>
         <label htmlFor="wu" className="text-sm">Endpoint URL</label><input id="wu" value={url} onChange={(e) => setUrl(e.target.value)} className={field} placeholder="https://example.com/helply-hook" />
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">{(hooks.data?.events ?? ['ticket.created', 'ticket.needs_human', 'reply.needs_review', 'conversation.handoff']).map((s) => <label key={s} className="flex items-center gap-1.5 text-sm"><input type="checkbox" checked={events.includes(s)} onChange={(e) => setEvents(e.target.checked ? [...events, s] : events.filter((x) => x !== s))} />{s}</label>)}</div>
         <div className="mt-3"><Button size="sm" disabled={!url.trim() || events.length === 0} onClick={() => void create()}>Create webhook</Button></div>
       </fieldset>
-      {secret && <div role="status" className="mt-3 rounded-xl border border-gold bg-gold-50 p-3 text-sm"><p className="font-medium">Signing secret (shown once)</p><div className="mt-1 flex items-start gap-2"><code className="log-mono min-w-0 flex-1 break-all text-xs">{secret}</code><CopyButton text={secret} /></div></div>}
+      {secret && <div role="status" className="mt-3 rounded-xl border border-warn bg-warn-50 p-3 text-sm"><p className="font-medium">Signing secret (shown once)</p><div className="mt-1 flex items-start gap-2"><code className="log-mono min-w-0 flex-1 break-all text-xs">{secret}</code><CopyButton text={secret} /></div></div>}
       {err && <div className="mt-3"><ErrorBanner message={err} /></div>}
     </Card>
   )

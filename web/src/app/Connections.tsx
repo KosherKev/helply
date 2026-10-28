@@ -5,7 +5,7 @@ import { Button, Card, Chip, CodeBlock, CopyButton, ErrorBanner, PageTitle, Spin
 import type { LogSource, LogSourceTest } from '../types'
 import { useAuth } from './auth'
 
-const field = 'mt-1 w-full rounded-lg border border-line bg-paper px-3 py-2'
+const field = 'mt-1 w-full rounded-xl border border-line bg-white px-3 py-2'
 
 function LogSourceCard() {
   const { call } = useAuth()
@@ -31,7 +31,7 @@ function LogSourceCard() {
       <p className="mt-1 text-sm text-muted">A central-logging-service (or compatible) with a <strong>read-only</strong> key. Helply only ever reads logs for the verified customer.</p>
       {src.loading && !src.data ? <div className="mt-3"><Spinner /></div> : (
         <>
-          {src.data?.source && <p className="mt-2 text-sm">Currently: <Chip tone="green">{src.data.source === 'environment' ? 'set by server environment' : 'configured'}</Chip> key {src.data.apiKeyMasked}</p>}
+          {src.data?.source && <p className="mt-2 text-sm">Currently: <Chip tone="ok">{src.data.source === 'environment' ? 'set by server environment' : 'configured'}</Chip> key {src.data.apiKeyMasked}</p>}
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <div><label htmlFor="ls-url" className="text-sm font-medium">Base URL</label><input id="ls-url" value={f.baseUrl} onChange={(e) => setF({ ...f, baseUrl: e.target.value })} placeholder="https://logs.example.com" className={field} /></div>
             <div><label htmlFor="ls-svc" className="text-sm font-medium">Service name</label><input id="ls-svc" value={f.service} onChange={(e) => setF({ ...f, service: e.target.value })} placeholder="my-api" className={field} /></div>
@@ -42,12 +42,12 @@ function LogSourceCard() {
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Button disabled={busy !== null || !f.baseUrl || !f.service} onClick={() => void save()}>{busy === 'save' ? 'Saving…' : 'Save'}</Button>
             <Button variant="secondary" disabled={busy !== null} onClick={() => void run()}>{busy === 'test' ? 'Testing…' : 'Test connection'}</Button>
-            {saved && <span role="status" className="text-sm text-green">✓ Saved</span>}
+            {saved && <span role="status" className="text-sm text-ok">✓ Saved</span>}
           </div>
           {test && (
             <div className="mt-4" aria-live="polite">
-              {test.ok ? <p className="rounded-lg bg-green-50 px-3 py-2 text-green">✓ Connected. Found {test.sampleCount} recent log lines, and filtering by user id works.</p> : (
-                <ul className="space-y-2">{test.issues.map((i) => <li key={i.code} role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-red"><span aria-hidden="true">⚠ </span>{i.message}</li>)}</ul>
+              {test.ok ? <p className="rounded-xl bg-ok-50 px-3 py-2 text-ok">✓ Connected. Found {test.sampleCount} recent log lines, and filtering by user id works.</p> : (
+                <ul className="space-y-2">{test.issues.map((i) => <li key={i.code} role="alert" className="rounded-xl bg-danger-50 px-3 py-2 text-danger"><span aria-hidden="true">⚠ </span>{i.message}</li>)}</ul>
               )}
             </div>
           )}
@@ -84,15 +84,15 @@ const token = head + "." + body + "." + sig; // send this to the chat widget
     <Card className="p-5">
       <h2 className="text-xl">Customer identity</h2>
       <p className="mt-1 text-sm text-muted">Your backend vouches for who the customer is with a short-lived signed token. That verified id is the only one Helply uses to read logs. Your logs must carry the same id in <code className="log-mono">metadata.userId</code>.</p>
-      {id.data && <p className="mt-2 text-sm">Signing secret: <Chip tone={id.data.configured ? 'green' : 'red'}>{id.data.configured ? 'configured' : 'not set'}</Chip> <span className="text-muted">({id.data.secretSource === 'environment' ? 'from HELPLY_JWT_SECRET' : 'stored for this workspace'}, tokens last {Math.round(id.data.tokenMaxAgeSeconds / 60)} min)</span></p>}
+      {id.data && <p className="mt-2 text-sm">Signing secret: <Chip tone={id.data.configured ? 'ok' : 'danger'}>{id.data.configured ? 'configured' : 'not set'}</Chip> <span className="text-muted">({id.data.secretSource === 'environment' ? 'from HELPLY_JWT_SECRET' : 'stored for this workspace'}, tokens last {Math.round(id.data.tokenMaxAgeSeconds / 60)} min)</span></p>}
       <div className="mt-3"><CodeBlock label="Node.js" code={snippet} /></div>
-      <div className="mt-4 rounded-xl bg-paper p-3">
+      <div className="mt-4 rounded-xl bg-ice p-3">
         <label htmlFor="mint" className="text-sm font-medium">Mint a test token</label>
-        <div className="mt-1 flex flex-wrap gap-2"><input id="mint" value={userId} onChange={(e) => setUserId(e.target.value)} className="min-w-[200px] flex-1 rounded-lg border border-line bg-card px-3 py-2 text-sm" /><Button variant="secondary" disabled={!userId.trim()} onClick={() => void mint()}>Mint token</Button></div>
-        {token && <div className="mt-2 flex items-start gap-2"><code className="log-mono min-w-0 flex-1 break-all rounded bg-card p-2 text-xs">{token}</code><CopyButton text={token} /></div>}
+        <div className="mt-1 flex flex-wrap gap-2"><input id="mint" value={userId} onChange={(e) => setUserId(e.target.value)} className="min-w-[200px] flex-1 rounded-xl border border-line bg-white px-3 py-2 text-sm" /><Button variant="secondary" disabled={!userId.trim()} onClick={() => void mint()}>Mint token</Button></div>
+        {token && <div className="mt-2 flex items-start gap-2"><code className="log-mono min-w-0 flex-1 break-all rounded bg-white p-2 text-xs">{token}</code><CopyButton text={token} /></div>}
       </div>
       {can('owner') && id.data?.secretSource === 'workspace' && <div className="mt-3"><Button variant="secondary" size="sm" onClick={() => void rotate()}>Rotate signing secret</Button></div>}
-      {secret && <div className="mt-3 rounded-xl border border-gold bg-gold-50 p-3 text-sm"><p className="font-medium">New secret (shown once)</p><div className="mt-1 flex items-start gap-2"><code className="log-mono min-w-0 flex-1 break-all text-xs">{secret}</code><CopyButton text={secret} /></div></div>}
+      {secret && <div className="mt-3 rounded-xl border border-warn bg-warn-50 p-3 text-sm"><p className="font-medium">New secret (shown once)</p><div className="mt-1 flex items-start gap-2"><code className="log-mono min-w-0 flex-1 break-all text-xs">{secret}</code><CopyButton text={secret} /></div></div>}
       {err && <div className="mt-3"><ErrorBanner message={err} /></div>}
     </Card>
   )

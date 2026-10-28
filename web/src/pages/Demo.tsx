@@ -36,23 +36,23 @@ export default function Demo() {
   ]
   const c = caps.data?.capabilities
   const dot = (ok: boolean | undefined, label: string, detail?: string) => (
-    <li className="flex items-center gap-1.5"><span aria-hidden="true" className={ok ? 'text-green' : 'text-red'}>●</span><span>{label}{detail ? `: ${detail}` : ''}</span><span className="sr-only">{ok ? 'connected' : 'not connected'}</span></li>
+    <li className="flex items-center gap-1.5"><span aria-hidden="true" className={ok ? 'text-ok' : 'text-danger'}>●</span><span>{label}{detail ? `: ${detail}` : ''}</span><span className="sr-only">{ok ? 'connected' : 'not connected'}</span></li>
   )
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-line bg-card">
+      <header className="border-b border-line bg-white">
         <div className="wrap flex flex-wrap items-center justify-between gap-3 py-3">
-          <Link to="/" className="font-display text-xl text-green">{BRAND}</Link>
+          <Link to="/" aria-label={`${BRAND} home`}><img src="/brand/helply-logo-horizontal-color.svg" alt={BRAND} width="120" height="47" className="h-9 w-auto" /></Link>
           <Button to="/app" variant="secondary" size="sm">Team dashboard</Button>
         </div>
       </header>
       <main id="main" className="wrap py-6">
         <h1 className="text-[28px] leading-tight sm:text-[34px]">Live demo: KwikPay Shop <span className="text-base font-normal text-muted">(fictional)</span></h1>
-        <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-xl border border-line bg-card p-3">
+        <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-xl border border-line bg-white p-3">
           <div>
             <label htmlFor="as" className="mr-2 text-sm font-medium">Signed in as</label>
-            <select id="as" value={as} onChange={(e) => void signInAs(e.target.value)} className="rounded-lg border border-line bg-paper px-3 py-1.5 text-sm">
+            <select id="as" value={as} onChange={(e) => void signInAs(e.target.value)} className="rounded-lg border border-line bg-white px-3 py-1.5 text-sm">
               <option value="">Signed out</option>
               {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
             </select>
