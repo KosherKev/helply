@@ -7,8 +7,8 @@ Single source of truth for project state. Read top to bottom at the start of eve
 | Field | Value |
 |---|---|
 | Current phase | **v1.1 built** (API + OpenAPI + web app). Remaining before submission: keys, live-service verification, deploy, demo rehearsal, Devpost write-up. |
-| Blocking issues | **Gemma returns 402 "prepayment credits depleted"** on the configured Google project (the key and model id are valid): top up billing in AI Studio or use another key, then run `npm run verify:live -- --e2e`. `userId` filter in `../_Modules/central-logging-service` still uncommitted (KL-9). Twi sample message still needed (KL-17). |
-| Next action | Fix Gemma billing, run `npm run verify:live -- --e2e` (start the isolated log service with `scripts/start-local-cls.sh`), fix the first FAIL. Then build v1.2 backend in the order in `docs/API_V1_2_PLAN.md` (relay + channels first). Dashboard developer builds against `npm run dev:mock`. |
+| Blocking issues | None in the verified demo path. Open: `userId` filter in `../_Modules/central-logging-service` still uncommitted (KL-9, user action); native-speaker Twi/Ga/Ewe samples (KL-17); ASR untested with a real recording (KL-2); ChatFlow architecture awaiting the user's confirmation. |
+| Next action | Build the v1.2 backend in the order in `docs/API_V1_2_PLAN.md` (relay + channels + external ids + `ai_live` first). Dashboard developer builds against `npm run dev:mock`. Deploy + demo rehearsal in parallel. |
 | Repo state | Git repository on `main`, last commit `5cf6745`. **Uncommitted from the 2026-10-28 live-verification session:** `src/loadEnv.js`, `test/loadEnv.test.js`, `scripts/verify-live.js`, edits to `src/server.js`, `scripts/seed-logs.js`, `scripts/check-khaya.js`, `package.json`, this file. `../central-logging-service` `userId` filter still uncommitted. |
 | Verified running | `npm test`: **77/77 pass** (Node 22.12, `--experimental-sqlite`). `cd web && npm run build` (tsc + vite + prerender): clean. Lighthouse mobile on the production build of `/`: **performance 96, accessibility 100, best practices 100**, no console errors. UI exercised in the in-app browser against the real API with **scripted fakes for Gemma, Khaya and the log service** (login, overview, conversations, takeover, translated reply preview, tickets, connections test, API key, webhook SSRF refusal, invite, audit), and checked at 375px (no horizontal scroll). **Not verified against live Gemma, Khaya or central-logging-service** (attempted from the build sandbox on 2026-10-28: network blocked, so inconclusive, not failed). `scripts/verify-live.js --e2e` was validated against the mock server (6/6 e2e steps). No linter configured (KL-7). |
 | Deadline | Hackathon submission ~19:00 Africa/Accra, 2026-10-28. Feature freeze 18:00. |
@@ -58,11 +58,16 @@ Single source of truth for project state. Read top to bottom at the start of eve
 - **Architecture decision (recommended, awaiting the user's confirmation):** ChatFlow stays the chat channel and human inbox; Helply is the AI brain behind it, linked by a per-channel relay key (`hr_live_...`) that ChatFlow's server uses on `/v1/relay/*`. Helply's knowledge base is the source of truth for AI answers. Customer identity reaches Helply as the company-signed token carried through ChatFlow (visitors there are anonymous; their name/email are client-supplied and untrusted); token v2 adds optional `aud`, `jti`, `vid` and public-key (RS256/ES256) verification.
 - **Onboarding must capture business information:** business profile, FAQ, documents/sites, error playbooks (error code to customer wording) and handoff rules, not only documents.
 
+### 2026-10-28 (Gemma verified live)
+- **Gemma 4 is a thinking model.** Reasoning tokens count against `maxOutputTokens`, so small budgets returned an empty answer. Only `thinkingConfig.thinkingLevel: "minimal"` is accepted (`thinkingBudget: 0` and `"low"` are 400s). The adapter now sends it by default (`GEMMA_THINKING_LEVEL`, empty to omit), steps down on a 400 (without thinking config, then inline without system/JSON mode), and reports "spent its whole output budget on reasoning" instead of a bare empty response. 5 tests.
+- **Model choice:** `gemma-4-31b-it` kept. `gemma-4-26b-a4b-it` is ~20% faster but its log-explanation step returned no usable result on the same prompt.
+- **Live demo story passes** (`npm run verify:live -- --e2e`): anonymous account question refused, Ama's failed payment diagnosed with cited lines and a ticket, Kofi's data never returned, knowledge-base answer. Pidgin (via Gemma) replied in natural Pidgin, round-trip similarity 0.7. A Twi message went through Khaya; its back-translation came out wrong (similarity 0.14) and was correctly flagged "needs review", which is the safety net doing its job.
+
 ## Known Limitations
 
 1. ~~In-memory store.~~ Resolved: SQLite (`HELPLY_DB_PATH`, default `.data/helply.db` for `npm start`). Tests use `:memory:`.
 2. ~~Khaya translate path/body unverified.~~ Verified live (translate for tw/ee/gaa/fat/dag, TTS for Twi). **ASR is still untested** (needs a .wav: `npm run check:khaya -- file.wav`).
-3. ~~Gemma model id unverified.~~ `gemma-4-31b-it` is valid for generateContent with the configured key (`gemma-4-26b-a4b-it` also exists). **Generation itself is unverified: the project returns 402 (credits depleted).**
+3. ~~Gemma model id and generation unverified.~~ **Verified live 2026-10-28** (see Decisions). `gemma-4-31b-it` is valid for generateContent with the configured key (`gemma-4-26b-a4b-it` also exists). **Generation itself is unverified: the project returns 402 (credits depleted).**
 4. ~~Pidgin code for Khaya unverified.~~ Khaya does **not** support Pidgin; it always uses the Gemma fallback and has no voice support.
 5. Round-trip quality is word-overlap (Jaccard), a cheap signal, not a human evaluation.
 6. ~~Single tenant; no accounts.~~ Resolved: workspaces, users, roles, sessions. Sessions are not revocable per device beyond logout/removal; no password reset or email delivery (invitation links are returned, not emailed); no MFA.
@@ -73,7 +78,7 @@ Single source of truth for project state. Read top to bottom at the start of eve
 11. ~~Rate limiter ignores `trust proxy`.~~ Resolved: `TRUST_PROXY` configures it; set it to `1` behind DigitalOcean. Limiters are in-process (not shared across instances).
 12. Hints come from the model; clamped and validated, but search quality depends on the model's keyword choices.
 13. ~~`scripts/seed-logs.js` never run live.~~ Run live; found and fixed a schema mismatch; 40 logs seeded into the local demo DB.
-14. Gemma adapter, Khaya client and the end-to-end flow were tested only with fakes, never with live APIs. The UI walk-through in this session also used fakes.
+14. ~~Adapters tested only with fakes.~~ Gemma, Khaya and the log service are verified live, and `npm run verify:live -- --e2e` passes the whole demo story. **Still unverified live:** speech-to-text with a real recording, Khaya TTS for languages other than Twi, voice end to end in a browser.
 15. The AcademicX and pharma apps still run `@bevingh/telemetry` 0.2.0, which ships raw auth headers and bodies. **Never point the demo at their real logs.**
 16. ~~Nothing is committed.~~ Resolved: first commit `69e08d6`.
 17. Twi/Ga/Ewe/Pidgin sample messages have not been written or reviewed by a native speaker. The Twi quick prompt is intentionally absent until `VITE_TWI_SAMPLE` is set.
@@ -90,8 +95,11 @@ Single source of truth for project state. Read top to bottom at the start of eve
 27. No end-to-end browser test suite; UI behaviour was verified manually in the in-app browser. Frontend has no unit tests.
 
 29. ~~`.env` was never loaded by the server or scripts.~~ Resolved this session (`src/loadEnv.js`, tested). Existing deployments must still set real environment variables.
-30. `GEMMA_API_KEY` is set and valid but the Google project has no credits (HTTP 402), so KL-14 (end-to-end with the real model) is still unverified.
+30. ~~Gemma key empty / no credits.~~ Resolved with a new key; generation verified live.
 31. `scripts/verify-live.js` e2e step names the seeded demo story (Ama/Kofi, `PAY-8842`) and needs `DEMO_MODE=true` for `POST /v1/demo/token`; it is a demo check, not a production smoke test.
+
+32. **Latency:** an answered account question takes about 11 to 17 s end to end (understand ~4 s, explain ~5 to 7 s, translation ~1 to 4 s) against the real model. Levers, not yet pulled: run `translate_in` in parallel with the log fetch; skip `translate_in` when the model's own English is good; stream the reply; cache the explanation for repeat questions; tune `maxOutputTokens`. For the live demo, pre-send the Ama message once (see `docs/DEMO_SCRIPT.md` fallbacks).
+33. Khaya quality varies by language and sentence (observed: a Twi back-translation that changed the meaning). The round-trip check and review queue exist for this; the escalation threshold (`ROUND_TRIP_THRESHOLD`, 0.4) has not been tuned on native-speaker data (KL-17).
 
 ## Next Steps
 
@@ -122,6 +130,11 @@ Single source of truth for project state. Read top to bottom at the start of eve
 - **Handover (later same day):** brand kit + 4 handover docs + `dev:mock` script added (see Decisions).
 - **Processes:** the dev API (scripted fakes), Vite dev server and preview server started this session were stopped; none left running.
 - **Commits:** `69e08d6` (v1.0 as found) ... `2519d06` (v1.1 code, dashboard, fixes, docs). Docs and this file: `e813de0`.
+
+### 2026-10-28 (Gemma live)
+- **Fixed:** Gemma adapter for thinking models (+5 tests, 88 total); `.env.example` documents `GEMMA_THINKING_LEVEL`.
+- **Verified live:** Gemma generation and JSON mode, Khaya, log service, the full demo story, Pidgin and Twi paths. **Not verified:** ASR, voice in a browser.
+- **Processes:** the API and the isolated log service started for verification were stopped.
 
 ### 2026-10-28 (v1.2 planning and Gemma key)
 - **Built:** v1.2 planned contract, fixtures, mock router, shared schema checker (`test/_schema.js`), `docs/API_V1_2_PLAN.md`, `docs/ADMIN_DASHBOARD_SPEC.md`; handover index updated. Tests 83/83.

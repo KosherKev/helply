@@ -29,6 +29,7 @@ const load = (env = process.env) => ({
     model: env.GEMMA_MODEL || "gemma-4-31b-it",
     baseUrl: trimSlash(env.GEMMA_BASE_URL) || "https://generativelanguage.googleapis.com",
     timeoutMs: num(env.GEMMA_TIMEOUT_MS, 30000),
+    thinkingLevel: env.GEMMA_THINKING_LEVEL === undefined ? "minimal" : env.GEMMA_THINKING_LEVEL, // "" disables the setting
   },
   khaya: {
     apiKey: env.KHAYA_API_KEY || "",
