@@ -190,7 +190,7 @@ test("agentOnline, human takeover and a paused AI all suppress the reply without
     assert.equal(d.data.handledBy, "human");
     assert.equal(llmCalls(), before);
 
-    await s.call("/v1/workspace", { method: "PATCH", token: owner.token, body: { settings: { aiLive: true } } });
+    s.repo.updateWorkspace(owner.ws, { settings: { aiLive: true } }); // resuming through the API is gated by onboarding (see onboarding.test.js)
     assert.equal((await msg({ identityToken: token, externalConversationId: "cf_back" })).data.handledBy, "ai");
   } finally { await s.close(); }
 });

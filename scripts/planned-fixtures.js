@@ -7,7 +7,7 @@
 const T = "2026-10-28T10:00:00.000Z";
 const T2 = "2026-10-28T14:30:00.000Z";
 
-const step = (id, title, description, status, detail = null, actionPath = null) => ({ id, title, description, status, detail, actionPath });
+const step = (id, title, description, status, detail = null, actionPath = null, optional = false) => ({ id, title, description, status, detail, actionPath, optional });
 const onboarding = (live = false) => ({
   steps: [
     step("workspace", "Create the workspace", "Name your company and become its owner", "done"),
@@ -57,17 +57,6 @@ const supportResponse = {
 
 /** key = "METHOD /path/with/{params}" exactly as in docs/openapi.yaml; value = the 2xx response body (null for 204). */
 module.exports = {
-  "GET /v1/onboarding": onboarding(false),
-  "POST /v1/onboarding/test": supportResponse,
-  "POST /v1/onboarding/go-live": onboarding(true),
-  "POST /v1/onboarding/pause": onboarding(false),
-  "GET /v1/business-profile": profile,
-  "PUT /v1/business-profile": profile,
-  "GET /v1/faqs": page(faqs),
-  "POST /v1/faqs": faqs[0],
-  "PUT /v1/faqs/{id}": faqs[0],
-  "DELETE /v1/faqs/{id}": null,
-  "POST /v1/faqs/import": { created: 12, skipped: 1, errors: [{ row: 7, message: "answer is empty" }] },
   "GET /v1/knowledge/sites": { data: [site] },
   "POST /v1/knowledge/sites": { ...site, status: "queued", pages: 0, lastIndexedAt: null },
   "POST /v1/knowledge/sites/{id}/reindex": { ...site, status: "crawling" },

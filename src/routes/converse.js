@@ -24,7 +24,9 @@ module.exports = (ctx) => {
   };
 
   /** Run the full AI pipeline for one message and persist everything. */
-  const converse = async ({ workspace: w, identity, token, conv, message, languageHint, visitorId }) => {
+  const converse = async ({ workspace: w, identity, token, conv, message, languageHint, visitorId, test = false }) => {
+    // A test run is real (real logs, real model) but never notifies anyone: no webhooks, SSE or review-queue noise.
+    const notify = test ? () => {} : ctx.notify;
     const customerId = identity?.claims.userId || null;
     const customerName = identity?.claims.name || null;
     const history = repo.listMessages(w.id, conv.id, { limit: 12, sentOnly: true }).map((m) => ({ role: m.role === "customer" ? "customer" : "assistant", text: m.english || m.text }));
@@ -32,9 +34,9 @@ module.exports = (ctx) => {
     const result = await agent.handleMessage({
       text: message, token: identity ? token : undefined, languageHint,
       ctx: {
-        store: ctx.store.forWorkspace(w.id), cls: ctx.logSourceFor(w), jwtSecret: ctx.identitySecret(w), roundTripThreshold: settings.escalationThreshold,
+        store: ctx.store.forWorkspace(w.id), cls: ctx.logSourceFor(w), jwtSecret: ctx.identitySecret(w), roundTripThreshold: settings.escalationThreshold, tone: repo.getBusinessProfile(w.id).tone,
         history, conversationId: conv.id, visitorId,
-        audit: ({ action, detail }) => repo.addAudit(w.id, { actorType: "customer", actorId: customerId, action, detail }),
+        audit: ({ action, detail }) => repo.addAudit(w.id, { actorType: "customer", actorId: customerId, action, detail: test ? { ...detail, test: true } : detail }),
       },
     });
 
@@ -54,13 +56,13 @@ module.exports = (ctx) => {
 
     if (result.ticketId) {
       const t = repo.getTicket(w.id, result.ticketId);
-      ctx.notify(w.id, "ticket.created", { ticket: t });
-      if (t.status === "needs_human") ctx.notify(w.id, "ticket.needs_human", { ticket: t });
+      notify(w.id, "ticket.created", { ticket: t });
+      if (t.status === "needs_human") notify(w.id, "ticket.needs_human", { ticket: t });
     }
-    if (result.needsHuman && !wasHandedOff) ctx.notify(w.id, "conversation.handoff", { conversationId: conv.id, customerId });
-    ctx.notify(w.id, "message.customer", { conversationId: conv.id });
+    if (result.needsHuman && !wasHandedOff) notify(w.id, "conversation.handoff", { conversationId: conv.id, customerId });
+    notify(w.id, "message.customer", { conversationId: conv.id });
     if (held) {
-      ctx.notify(w.id, "reply.needs_review", { conversationId: conv.id, messageId: ai.id });
+      notify(w.id, "reply.needs_review", { conversationId: conv.id, messageId: ai.id });
       result.reply = { language: "en", english: HOLD_TEXT, text: HOLD_TEXT };
     }
     return { ...result, conversationId: conv.id, messageId: ai.id, handledBy: "ai", ...(held ? { held: true } : {}) };

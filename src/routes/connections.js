@@ -74,7 +74,12 @@ module.exports = (ctx) => {
     const w = repo.getWorkspace(ctx.wsOf(req));
     const cls = ctx.logSourceFor(w);
     const issues = [];
-    const done = (ok, sampleCount) => res.json({ ok: ok && issues.length === 0, sampleCount, issues });
+    let foundUserId = false;
+    const done = (ok, sampleCount) => {
+      const passed = ok && issues.length === 0;
+      repo.recordLogTest(w.id, { ok: passed, hasUserId: foundUserId });
+      res.json({ ok: passed, sampleCount, issues });
+    };
     if (!cls?.baseUrl || !cls?.apiKey) {
       issues.push({ code: "not_configured", message: "No log source is set up yet. Add the base URL, a read-only API key and the service name." });
       return done(false, 0);
@@ -99,6 +104,7 @@ module.exports = (ctx) => {
       issues.push({ code: "no_user_id", message: "Your logs carry no metadata.userId, so Helply cannot find one customer's requests. Add the logged-in user's id to metadata.userId on each request log." });
       return done(false, sample.length);
     }
+    foundUserId = true;
     try {
       const scoped = await probeLogs(cls, { userId: withUser.metadata.userId, limit: 20 }, { fetchImpl });
       if (scoped.some((r) => r?.metadata?.userId !== withUser.metadata.userId)) {

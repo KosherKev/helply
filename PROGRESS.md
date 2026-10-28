@@ -8,7 +8,7 @@ Single source of truth for project state. Read top to bottom at the start of eve
 |---|---|
 | Current phase | **v1.1 built** (API + OpenAPI + web app). Remaining before submission: keys, live-service verification, deploy, demo rehearsal, Devpost write-up. |
 | Blocking issues | None in the verified demo path. Open: `userId` filter in `../_Modules/central-logging-service` still uncommitted (KL-9, user action); native-speaker Twi/Ga/Ewe samples (KL-17); ASR untested with a real recording (KL-2); ChatFlow architecture awaiting the user's confirmation. |
-| Next action | Next backend step per `docs/API_V1_2_PLAN.md` order: business profile + FAQ + computed onboarding (`GET /v1/onboarding`, test, go-live/pause), then inbox counts/assign, issues, playbooks, handoff rules. ChatFlow-side wiring (see `docs/CHATFLOW_INTEGRATION.md`) needs the user's go-ahead to touch that repo. Dashboard developer builds against `npm run dev:mock`. |
+| Next action | Continue `docs/API_V1_2_PLAN.md` order: inbox counts + assign, then issues, playbooks, handoff rules, knowledge gaps, feedback/quality. ChatFlow-side wiring needs the user's go-ahead to touch that repo. Dashboard developer builds against `npm run dev:mock` (real: onboarding, profile, FAQ, channels, relay). |
 | Repo state | Git repository on `main`, last commit `5cf6745`. **Uncommitted from the 2026-10-28 live-verification session:** `src/loadEnv.js`, `test/loadEnv.test.js`, `scripts/verify-live.js`, edits to `src/server.js`, `scripts/seed-logs.js`, `scripts/check-khaya.js`, `package.json`, this file. `../central-logging-service` `userId` filter still uncommitted. |
 | Verified running | `npm test`: **77/77 pass** (Node 22.12, `--experimental-sqlite`). `cd web && npm run build` (tsc + vite + prerender): clean. Lighthouse mobile on the production build of `/`: **performance 96, accessibility 100, best practices 100**, no console errors. UI exercised in the in-app browser against the real API with **scripted fakes for Gemma, Khaya and the log service** (login, overview, conversations, takeover, translated reply preview, tickets, connections test, API key, webhook SSRF refusal, invite, audit), and checked at 375px (no horizontal scroll). **Not verified against live Gemma, Khaya or central-logging-service** (attempted from the build sandbox on 2026-10-28: network blocked, so inconclusive, not failed). `scripts/verify-live.js --e2e` was validated against the mock server (6/6 e2e steps). No linter configured (KL-7). |
 | Deadline | Hackathon submission ~19:00 Africa/Accra, 2026-10-28. Feature freeze 18:00. |
@@ -72,6 +72,12 @@ Single source of truth for project state. Read top to bottom at the start of eve
 - **Verified live** against real Gemma, Khaya and the log service: verified Pidgin visitor answered with a ticket (17.8 s), expired-token follow-up falls back to anonymous in the same conversation, `agentOnline` and `agent_joined` suppress the AI, dashboard shows the conversation, channel test passes.
 - ChatFlow's repo was **not** touched; `docs/CHATFLOW_INTEGRATION.md` specifies what it must do.
 
+### 2026-10-28 (onboarding, business profile, FAQ)
+- **Built:** computed onboarding checklist (9 steps, `optional` flag, `readyForLive`), test-as-a-customer, go-live/pause; business profile; FAQ with CSV import; migration `003` (`business_profiles`, `faqs`, `onboarding_state`, `is_test` on conversations and tickets); RFC 4180 CSV parser (`src/util-csv.js`).
+- **Decision:** new workspaces start with the AI paused and can go live only through the checklist (`PATCH aiLive: true` obeys the same gate); the demo/default workspace and existing ones stay live. Test runs are real but invisible (lists, analytics, notifications).
+- **Decision:** company text is retrieved like documents (FAQ boosted, profile excerpt only when relevant), never pasted wholesale into prompts; `tone` is applied to the knowledge and explanation prompts.
+- **Verified live** (real Gemma, Khaya, logs): formal tone applied; opening hours answered from the profile; cash-on-delivery from the FAQ; test run hidden from lists; checklist moved to ready. The demo workspace in `.data/helply.db` now holds that profile and FAQ.
+
 ## Known Limitations
 
 1. ~~In-memory store.~~ Resolved: SQLite (`HELPLY_DB_PATH`, default `.data/helply.db` for `npm start`). Tests use `:memory:`.
@@ -114,6 +120,10 @@ Single source of truth for project state. Read top to bottom at the start of eve
 35. Relay latency equals the pipeline latency (10 to 18 s). ChatFlow must keep a 25 s timeout and a fallback message (documented). A visitor-bound token (`vid`) cannot be used on the direct support API by design.
 36. Channel keys are looked up by hash on every relay call with no cache (fine at this scale; revisit with load).
 
+37. Business profile `languages` is stored but not enforced; `escalation` contacts are stored but not yet shown to customers; `hours` are free text (no outside-hours logic yet).
+38. The onboarding `identity` step is satisfied by a minted token or any verified customer conversation, which proves the token path was used, not that the company's own backend signs correctly. The customer test uses a token Helply signs itself.
+39. FAQ matching is keyword overlap like documents (no embeddings); paraphrased questions may miss. Knowledge-gap capture (planned) is the safety net.
+
 ## Next Steps
 
 1. ~~`git init -b main`, first commit.~~ `69e08d6`.
@@ -143,6 +153,9 @@ Single source of truth for project state. Read top to bottom at the start of eve
 - **Handover (later same day):** brand kit + 4 handover docs + `dev:mock` script added (see Decisions).
 - **Processes:** the dev API (scripted fakes), Vite dev server and preview server started this session were stopped; none left running.
 - **Commits:** `69e08d6` (v1.0 as found) ... `2519d06` (v1.1 code, dashboard, fixes, docs). Docs and this file: `e813de0`.
+
+### 2026-10-28 (onboarding)
+- **Built:** see Decisions "onboarding, business profile, FAQ". Tests 110/110 (+8), spec promoted 11 operations (32 planned remain). Existing tests now register workspaces already live via a helper option; relay resume test uses the repository because the API gate applies. **Not done:** playbooks, handoff rules, inbox counts/assign, issues, gaps, quality, public-key identity, password reset, customers, site crawler.
 
 ### 2026-10-28 (relay backend)
 - **Built:** items in Decisions "relay backend built"; tests 102/102 (+14: channel lifecycle, relay auth negatives, identity rejections, suppression, events, isolation, rate limits, 503 handling); `docs/CHATFLOW_INTEGRATION.md`; spec promoted 9 operations from planned to built (43 planned remain); fixtures for them removed; web types updated.

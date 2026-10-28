@@ -209,3 +209,6 @@ Spec: `docs/openapi.yaml` (tags Channels and Relay). Guide for the ChatFlow side
 - **Customer token claims (additive):** `aud` (if present must be `helply`) and `vid` (binds the token to one chat visitor: accepted only when the caller supplies the same visitor id, so on the direct API a `vid` token is never accepted). `POST /v1/identity/tokens` accepts an optional `visitorId`.
 - **Workspace setting `aiLive`** (`PATCH /v1/workspace`): `false` pauses the AI for the whole workspace. Customer messages are recorded and handed to a person, with no model or log work (direct API: a handoff reply; relay: `suppressed: "ai_paused"`).
 - New audit events: `channel_connected`, `channel_key_rotated`, `channel_disconnected`, `ai_live_changed`, `relay_identity_changed`.
+
+## v1.2 built: onboarding, business profile, FAQ
+Spec: `docs/openapi.yaml` (tags Onboarding, Business). Behaviour and the as-built notes: `docs/API_V1_2_PLAN.md`. New workspaces from `POST /v1/auth/register` start with `settings.aiLive = false`; switching on requires the onboarding checklist (`409 not_ready`). New audit events: `onboarding_test`, `business_profile_changed`, `faq_created|updated|deleted|imported`. Test runs are invisible to conversation/ticket lists and analytics.

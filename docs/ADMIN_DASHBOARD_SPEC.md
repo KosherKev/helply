@@ -1,6 +1,6 @@
 # Admin dashboard spec (the team dashboard under `/app`)
 
-For the developer building the dashboard in parallel with the backend. Read with `docs/handover/DASHBOARD_AND_DEMO.md` (what exists and the security rules), `docs/openapi.yaml` (every route; planned ones are `x-planned`), `docs/API_V1_2_PLAN.md` (planned behaviour) and `docs/brand/README.md` (look and voice; it overrides the older colours in `FRONTEND_SPEC.md`). Run `npm run dev:mock`: real routes work, planned routes answer with fixtures.
+For the developer building the dashboard in parallel with the backend. Read with `docs/handover/DASHBOARD_AND_DEMO.md` (what exists and the security rules), `docs/openapi.yaml` (every route; planned ones are `x-planned`), `docs/API_V1_2_PLAN.md` (planned behaviour) and `docs/brand/README.md` (look and voice; it overrides the older colours in `FRONTEND_SPEC.md`). Run `npm run dev:mock`: real routes work, planned routes answer with fixtures. **Onboarding, business profile, FAQ, channels and the relay are real now**: use the real backend (log in as `owner@kwikpay.demo`). New workspaces you register start with the AI paused, by design; the demo workspace is live.
 
 Legend: **Built** = backend route exists and the page exists. **Page todo** = backend exists, page not built or incomplete. **Planned** = backend route does not exist yet (use the mock). Priorities P0/P1/P2 match `x-priority` in the spec.
 
@@ -46,12 +46,12 @@ Top bar: workspace name; **AI status** switch (Live / Paused; Paused sends every
 | | Review queue | `/app/review` | agent | Built |
 | | Knowledge gaps | `/app/quality/gaps` | agent (resolve: admin) | Planned P1 |
 | | AI quality | `/app/quality` | agent | Planned P1 |
-| Business | Business details | `/app/business` | agent (edit: admin) | Planned P0 |
-| | FAQ | `/app/business/faq` | agent (edit: admin) | Planned P0 |
+| Business | Business details | `/app/business` | agent (edit: admin) | Backend built; page todo |
+| | FAQ | `/app/business/faq` | agent (edit: admin) | Backend built (incl. CSV import); page todo |
 | | Documents and sites | `/app/business/documents` | agent (edit: admin) | Built (documents) / Planned P1 (sites) |
 | | Playbooks | `/app/business/playbooks` | agent (edit: admin) | Planned P1 |
 | | Handoff rules | `/app/business/handoff` | agent (edit: admin) | Planned P1 |
-| Setup | Onboarding | `/app/onboarding` | agent (act: admin) | Planned P0 |
+| Setup | Onboarding | `/app/onboarding` | agent (act: admin) | Backend built; page todo |
 | | Connections | `/app/connections` (Logs, Identity, Chat channel tabs) | admin | Built (logs, identity, **chat channel: backend built**, page todo) |
 | | Developers | `/app/developers` | admin | Built |
 | | Team | `/app/team` | admin | Built |

@@ -115,11 +115,14 @@ const buildApp = (config = load(), overrides = {}) => {
   );
 
   ctx.core = require("./routes/converse")(ctx);
+  ctx.onboarding = require("./onboarding")(ctx);
   require("./routes/support")(ctx);
   require("./routes/account")(ctx);
   require("./routes/connections")(ctx);
   require("./routes/console")(ctx);
   require("./routes/channels")(ctx);
+  require("./routes/business")(ctx);
+  require("./routes/onboarding")(ctx);
 
   app.use((req, res, next) => next(new HttpError(404, "not_found", "Not found")));
   // eslint-disable-next-line no-unused-vars

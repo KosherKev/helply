@@ -35,7 +35,7 @@ module.exports = (ctx) => {
     if (typeof workspaceName !== "string" || workspaceName.trim().length < 2) throw new HttpError(400, "workspace_name_required", "Give your workspace a name");
     if (repo.getUserByEmail(email)) throw new HttpError(409, "email_taken", "That email is already registered");
     const passwordHash = await hashPassword(password);
-    const w = repo.createWorkspace({ name: workspaceName.trim(), slug: `${slugify(workspaceName)}-${crypto.randomBytes(3).toString("hex")}`, identitySecretEnc: vault.encrypt(crypto.randomBytes(32).toString("hex")) });
+    const w = repo.createWorkspace({ name: workspaceName.trim(), slug: `${slugify(workspaceName)}-${crypto.randomBytes(3).toString("hex")}`, identitySecretEnc: vault.encrypt(crypto.randomBytes(32).toString("hex")), settings: { aiLive: false } }); // new workspaces stay paused until setup is complete
     const user = repo.createUser({ email, passwordHash, name: typeof name === "string" ? name.trim().slice(0, 80) : null });
     repo.addMembership(w.id, user.id, "owner");
     repo.addAudit(w.id, { actorType: "user", actorId: user.id, action: "workspace_created", detail: {} });
@@ -127,6 +127,10 @@ module.exports = (ctx) => {
       }
       if (settings.aiLive !== undefined) {
         if (typeof settings.aiLive !== "boolean") throw new HttpError(400, "invalid_settings", "aiLive must be a boolean");
+        if (settings.aiLive && !repo.getWorkspace(ws).settings.aiLive) {
+          const ob = ctx.onboarding(ws);
+          if (!ob.readyForLive) throw new HttpError(409, "not_ready", `Finish setup before switching the AI on: ${ob.steps.filter((x) => !x.optional && x.id !== "live" && x.status !== "done").map((x) => x.title).join(", ")}`);
+        }
         s.aiLive = settings.aiLive;
       }
       if (settings.brandColor !== undefined) {

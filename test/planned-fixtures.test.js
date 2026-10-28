@@ -16,7 +16,7 @@ const prioritised = [];
 for (const [p, item] of Object.entries(spec.paths)) for (const [m, op] of Object.entries(item)) if (op["x-planned"] && op["x-priority"]) prioritised.push({ key: `${m.toUpperCase()} ${p}`, method: m, path: p, op });
 
 test("every planned operation with a priority has a fixture, and every fixture is a planned operation", () => {
-  assert.ok(prioritised.length >= 35);
+  assert.ok(prioritised.length >= 25);
   assert.deepEqual(prioritised.filter((o) => fixtures[o.key] === undefined).map((o) => o.key), [], "add fixtures to scripts/planned-fixtures.js");
   const keys = new Set(prioritised.map((o) => o.key));
   assert.deepEqual(Object.keys(fixtures).filter((k) => k !== "__relayVariants" && !keys.has(k)), [], "fixtures for operations that are not planned");

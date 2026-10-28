@@ -1,6 +1,6 @@
 # API v1.2 plan
 
-> **Built (2026-10-28):** channels, the relay API, token v2 claims `aud` and `vid`, and the `aiLive` pause switch (workspace setting, `PATCH /v1/workspace`). Everything else below is still PLANNED. Integration guide for the ChatFlow side: [`CHATFLOW_INTEGRATION.md`](CHATFLOW_INTEGRATION.md).
+> **Built (2026-10-28):** channels, the relay API, token v2 claims `aud` and `vid`, the `aiLive` pause switch, **onboarding (computed checklist, test-as-a-customer, go-live, pause), business profile and FAQ (CRUD + CSV import)**. Everything else below is still PLANNED. Integration guide for the ChatFlow side: [`CHATFLOW_INTEGRATION.md`](CHATFLOW_INTEGRATION.md).
 
 The machine-readable contract is [`openapi.yaml`](openapi.yaml): every operation here is in it with `x-planned: true` and `x-priority` (P0 first). This file explains the **behaviour** the schema cannot. Types, request and response shapes live only in the spec (do not copy them here or they drift). Built routes are in [`API_CONTRACT.md`](API_CONTRACT.md).
 
@@ -16,8 +16,8 @@ Tenant id always comes from the credential. Errors are `{ error: { code, message
 ## Route groups
 | Group | Routes | Pri | Role | Used by |
 |---|---|---|---|---|
-| Onboarding | `GET /v1/onboarding`, `POST .../test`, `.../go-live`, `.../pause` | P0 | agent (read), admin | Onboarding wizard, top-bar "Setup" badge |
-| Business info | `/v1/business-profile` (GET/PUT), `/v1/faqs` (+import), `/v1/knowledge/sites`, `/v1/handoff-rules` | P0/P1 | agent read, admin write | Business section |
+| Onboarding | `GET /v1/onboarding`, `POST .../test`, `.../go-live`, `.../pause` | **built** | agent (read), admin | Onboarding wizard, top-bar "Setup" badge |
+| Business info | `/v1/business-profile`, `/v1/faqs` (+import) **built**; `/v1/knowledge/sites`, `/v1/handoff-rules` P1 | agent read, admin write | Business section |
 | Playbooks | `/v1/playbooks`, `/v1/playbooks/suggestions` | P1 | agent read, admin write | Playbooks page, Issue detail |
 | Quality | `/v1/knowledge-gaps` (+resolve/dismiss), `POST /v1/messages/:id/feedback`, `GET /v1/analytics/quality` | P1 | agent / admin | Quality section, conversation view |
 | Issues | `/v1/issues` (+detail, patch, export, notify-fixed) | P1 (notify P2) | agent, admin for notify | Issues page |
@@ -76,3 +76,10 @@ Route-order note: register `GET /v1/knowledge/sites` before `GET /v1/knowledge/:
 4. Knowledge gaps, feedback and quality.
 5. Public-key identity, `vid`/`jti`, password reset, customers, notify-fixed.
 Each step ships with tests including the negative cases (wrong workspace, wrong role, bad relay key) and the spec updated first.
+
+## As built: onboarding, business profile, FAQ (differences from the plan above)
+- **New workspaces start paused** (`aiLive: false`); the default/demo workspace and existing ones stay live. `PATCH /v1/workspace` with `aiLive: true` and `POST /v1/onboarding/go-live` share one gate: `409 not_ready` listing the open steps. Pausing is never gated.
+- **Steps:** `GET /v1/onboarding` has a new `optional` field per step. `channel` is optional (companies may call the API directly); `readyForLive` ignores optional steps. `identity` is done once a token has been minted or a verified customer has used the service. `logs_shipped` and `log_source` come from the last log source test (remembered in `onboarding_state`); `test` is done for 7 days after a verified, error-free test run.
+- **Test runs** (`POST /v1/onboarding/test`) create a conversation and ticket flagged `is_test`: hidden from conversation and ticket lists, analytics and root causes, and they never fire webhooks or SSE. The log lookup is still audited, marked `test: true`.
+- **Company text reaches the model** as retrievable excerpts, never wholesale: enabled FAQ entries (boosted above documents) and a "Business details" excerpt (name, about, hours, contacts) are matched against the customer's question like document chunks. The profile `tone` is passed as `<tone>` to the knowledge and explanation prompts. Disabled FAQs are never offered. Personal data is scrubbed from profile and FAQ text on save. `languages` is stored but not yet enforced.
+- **FAQ import:** `row` in errors counts non-empty rows with the header as row 1. Limit 500 entries; duplicate questions (case-insensitive) are skipped or 409.

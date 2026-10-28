@@ -2900,8 +2900,6 @@ paths:
         - Onboarding
       summary: Onboarding checklist computed from the workspace's real state
       operationId: get_v1_onboarding
-      x-planned: true
-      x-priority: P0
       security:
         - sessionAuth: []
       x-min-role: agent
@@ -2936,8 +2934,6 @@ paths:
         - Onboarding
       summary: Run a real test customer message through the full pipeline (not counted in analytics)
       operationId: post_v1_onboarding_test
-      x-planned: true
-      x-priority: P0
       security:
         - sessionAuth: []
       x-min-role: admin
@@ -2996,8 +2992,6 @@ paths:
         - Onboarding
       summary: Switch the AI on for customers (requires readyForLive)
       operationId: post_v1_onboarding_go_live
-      x-planned: true
-      x-priority: P0
       security:
         - sessionAuth: []
       x-min-role: admin
@@ -3032,8 +3026,6 @@ paths:
         - Onboarding
       summary: "Pause the AI: every message goes to a person"
       operationId: post_v1_onboarding_pause
-      x-planned: true
-      x-priority: P0
       security:
         - sessionAuth: []
       x-min-role: admin
@@ -3068,8 +3060,6 @@ paths:
         - Business
       summary: Business profile the assistant may rely on
       operationId: get_v1_business_profile
-      x-planned: true
-      x-priority: P0
       security:
         - sessionAuth: []
       x-min-role: agent
@@ -3103,8 +3093,6 @@ paths:
         - Business
       summary: Replace the business profile
       operationId: put_v1_business_profile
-      x-planned: true
-      x-priority: P0
       security:
         - sessionAuth: []
       x-min-role: admin
@@ -3171,8 +3159,6 @@ paths:
           required: false
           schema:
             type: string
-      x-planned: true
-      x-priority: P0
       security:
         - sessionAuth: []
       x-min-role: agent
@@ -3218,8 +3204,6 @@ paths:
         - Business
       summary: Create an FAQ entry
       operationId: post_v1_faqs
-      x-planned: true
-      x-priority: P0
       security:
         - sessionAuth: []
       x-min-role: admin
@@ -3290,8 +3274,6 @@ paths:
           required: true
           schema:
             type: string
-      x-planned: true
-      x-priority: P0
       security:
         - sessionAuth: []
       x-min-role: admin
@@ -3359,8 +3341,6 @@ paths:
           required: true
           schema:
             type: string
-      x-planned: true
-      x-priority: P0
       security:
         - sessionAuth: []
       x-min-role: admin
@@ -3391,8 +3371,6 @@ paths:
         - Business
       summary: Import FAQ from CSV (columns question, answer, language, tags)
       operationId: post_v1_faqs_import
-      x-planned: true
-      x-priority: P1
       security:
         - sessionAuth: []
       x-min-role: admin
@@ -6444,6 +6422,8 @@ components:
           type:
             - string
             - "null"
+        optional:
+          type: boolean
       required:
         - id
         - title
@@ -6451,6 +6431,7 @@ components:
         - status
         - detail
         - actionPath
+        - optional
     Onboarding:
       type: object
       properties:

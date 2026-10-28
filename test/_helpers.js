@@ -63,12 +63,15 @@ const boot = async ({ env = {}, overrides = {} } = {}) => {
     try { data = text ? JSON.parse(text) : null; } catch { data = text; }
     return { status: res.status, data, headers: res.headers };
   };
+  const s_repo = () => app.locals.ctx.repo;
   let n = 0;
   /** Registers a new workspace + owner and returns { token, ws, user, workspace }. */
-  const register = async (workspaceName = "Acme", email) => {
+  const register = async (workspaceName = "Acme", email, { live = true } = {}) => {
     n += 1;
     const r = await call("/v1/auth/register", { method: "POST", body: { email: email || `owner${n}-${Math.random().toString(36).slice(2, 6)}@acme.test`, password: "correct-horse-battery", workspaceName } });
     if (r.status !== 201) throw new Error(`register failed ${r.status} ${JSON.stringify(r.data)}`);
+    // New workspaces start paused (onboarding gate). Most tests are about the AI itself, so go live directly; pass { live: false } to test onboarding.
+    if (live) s_repo().updateWorkspace(r.data.workspace.id, { settings: { aiLive: true } });
     return { token: r.data.session, ws: r.data.workspace.id, workspace: r.data.workspace, user: r.data.user, email: r.data.user.email };
   };
   /** Invites and accepts a member; returns their session token. */

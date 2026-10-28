@@ -56,24 +56,26 @@ const createSupportAgent = ({ config, llm, language, store, fetchImpl = fetch, n
     }
   };
 
-  const answerFromKnowledge = async (english, scoped) => {
+  const toneTag = (tone) => (["friendly", "formal", "concise"].includes(tone) ? `\n<tone>${tone}</tone>` : "");
+
+  const answerFromKnowledge = async (english, scoped, tone) => {
     const chunks = scoped.retrieve(english, 3);
     if (!chunks.length) return null;
     const knowledge = chunks.map((c) => `[${c.title}] ${P.escape(c.text)}`).join("\n---\n");
     const r = await llm.generate({
       system: P.KB,
-      user: `<knowledge>\n${knowledge}\n</knowledge>\n<customer_message>${P.escape(english)}</customer_message>`,
+      user: `<knowledge>\n${knowledge}\n</knowledge>\n<customer_message>${P.escape(english)}</customer_message>${toneTag(tone)}`,
       maxOutputTokens: 300,
     });
     if (r.text.includes(P.NO_ANSWER)) return null;
     return { text: cleanText(r.text), sources: chunks.map((c) => c.title) };
   };
 
-  const explainFromLogs = async (english, ev) => {
+  const explainFromLogs = async (english, ev, tone) => {
     const ids = new Set(ev.lines.map((l) => l.id));
     const r = await llm.generate({
       system: P.EXPLAIN,
-      user: `<customer_message>${P.escape(english)}</customer_message>\n<log_evidence>\n${ev.lines.map((l) => JSON.stringify(l)).join("\n")}\n</log_evidence>`,
+      user: `<customer_message>${P.escape(english)}</customer_message>\n<log_evidence>\n${ev.lines.map((l) => JSON.stringify(l)).join("\n")}\n</log_evidence>${toneTag(tone)}`,
       json: true,
       maxOutputTokens: 600,
     });
@@ -175,7 +177,7 @@ const createSupportAgent = ({ config, llm, language, store, fetchImpl = fetch, n
           needsHuman = true;
           ticket = S.createTicket({ conversationId, title: "No matching activity found", userId: identity.claims.userId, language: u.language, customerMessage: english, replyEnglish, status: "needs_human" });
         } else {
-          const ex = await explainFromLogs(english, ev);
+          const ex = await explainFromLogs(english, ev, ctx.tone);
           mark("explain", { found: ex.found, model: llm.model });
           if (ex.found) {
             evidence = ev.lines.filter((l) => ex.citedLines.includes(l.id));
@@ -202,7 +204,7 @@ const createSupportAgent = ({ config, llm, language, store, fetchImpl = fetch, n
     } else {
       let kb = null;
       try {
-        kb = await answerFromKnowledge(english, S);
+        kb = await answerFromKnowledge(english, S, ctx.tone);
       } catch {
         kb = null;
       }
