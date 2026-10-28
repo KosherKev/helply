@@ -5,7 +5,7 @@ import { Spinner } from './components/ui'
 
 const Demo = lazy(() => import('./pages/Demo'))
 const AppRoutes = lazy(() => import('./app/AppRoutes'))
-const NotFound = () => <main className="wrap py-20 text-center"><h1 className="text-[28px]">Page not found</h1><a className="mt-4 inline-block text-green underline" href="/">Go home</a></main>
+const NotFound = () => <main className="wrap py-20 text-center"><h1 className="text-[28px]">Page not found</h1><a className="mt-4 inline-block text-blue underline" href="/">Go home</a></main>
 
 export default function App() {
   return (

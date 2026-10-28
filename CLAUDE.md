@@ -2,13 +2,14 @@
 
 Open-source customer support that speaks Ghanaian languages and reads the company's logs to explain what went wrong. MIT. Node 20+, CommonJS, zero-dependency core (Express is the only runtime dependency).
 
-**Start of every session:** read `PROGRESS.md` top to bottom, then `README.md`, `docs/ARCHITECTURE.md`, `docs/API_CONTRACT.md`. The kickoff task for the v1.1 expansion is `docs/CLAUDE_CODE_PROMPT.md`.
+**Start of every session:** read `PROGRESS.md` top to bottom, then `README.md`, `docs/ARCHITECTURE.md`, `docs/API_CONTRACT.md`. The kickoff task for the v1.1 expansion is `docs/CLAUDE_CODE_PROMPT.md`. Frontend/brand/language work is handed to other people: see `docs/handover/README.md`; the brand kit in `docs/brand/` wins over `docs/FRONTEND_SPEC.md` on colours, fonts and voice.
 
 ## Commands
 ```bash
 npm install
-npm test            # node --test (28 tests at last count; server tests need Express installed)
-npm run dev         # http://localhost:8787
+npm test            # node --experimental-sqlite --test (74 tests at last count, includes the OpenAPI contract and isolation matrix)
+npm run dev         # http://localhost:8787  (web/: cd web && npm run dev -> :5173; npm run build runs tsc + prerender)
+npm run dev:mock    # API with scripted fakes for model/Khaya/logs: for frontend work without keys
 npm run seed        # fictional demo logs into central-logging-service (needs CLS_WRITE_KEY)
 npm run check:khaya # verify Khaya endpoints with your key
 ```

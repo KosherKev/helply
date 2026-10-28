@@ -32,20 +32,26 @@ Built for the CIREN Hacktoberfest 2026 hackathon ("Build the Next B2B Company on
 5. **Read-only.** Helply uses a `logs:read` key. It cannot write, change or delete anything.
 6. **Cited or it didn't happen.** An explanation must cite real evidence lines; otherwise it is rejected and escalated. Model output is cleaned (no links, no secrets).
 7. **Fails closed.** No token, bad token or unreachable log source means no log access.
+8. **Workspace isolation (v1.1).** Every query is scoped by a tenant id taken from the session, API key or verified token, never from a request body. Webhooks are signed and SSRF-protected; secrets are encrypted at rest.
 
 Covered by tests (`npm test`): forged tokens, `alg=none`, cross-user scoping, injection, redaction, fabricated citations.
 
 ## Quickstart
 
-Requires Node 20+, a [central-logging-service](https://github.com/KosherKev/central-logging-service) instance (MIT) with the `userId` filter, and a Gemma 4 key.
+Requires **Node 22.5+** (built-in SQLite, started with `--experimental-sqlite`, which the npm scripts pass), a [central-logging-service](https://github.com/KosherKev/central-logging-service) instance (MIT) with the `userId` filter, and a Gemma 4 key.
 
 ```bash
 git clone <this repo> && cd helply
 npm install
 cp .env.example .env      # fill in the keys (see below)
 npm test
-npm run dev               # http://localhost:8787
+npm run dev               # API on http://localhost:8787 (DEMO_MODE=true seeds the KwikPay demo + owner@kwikpay.demo)
+
+# Frontend (marketing site, /demo, and the team dashboard at /app)
+cd web && cp .env.example .env && npm install && npm run dev    # http://localhost:5173
 ```
+
+Docs: [`docs/openapi.yaml`](docs/openapi.yaml) is the API spec of record (`node scripts/build-openapi.js` regenerates it); `docs/API_CONTRACT.md` has the narrative and types.
 
 Demo data (fictional shop, one seeded failed-payment story):
 

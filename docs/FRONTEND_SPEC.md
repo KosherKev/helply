@@ -1,5 +1,7 @@
 # Helply frontend spec
 
+> **Superseded in part (2026-10-28).** The brand guide in `docs/brand/` wins over §1 (colours, fonts, radius, voice). The support console described in §4, §5 and §7 shipped as the team dashboard under `/app` (see `docs/handover/DASHBOARD_AND_DEMO.md`); `/console` routes do not exist. Start with `docs/handover/README.md`.
+
 What to build, page by page, with copy, components, data and acceptance criteria. Read `API_CONTRACT.md` first: every field named here comes from it.
 
 ## 0. Scope and priorities

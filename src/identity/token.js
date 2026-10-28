@@ -26,7 +26,7 @@ const safeEqual = (a, b) => {
 };
 
 /** @returns {{ok:true, claims:{userId,name,tenant,exp}} | {ok:false, reason:string}} */
-const verify = (token, secret, { now = Date.now(), maxAgeSeconds = 900 } = {}) => {
+const verify = (token, secret, { now = Date.now(), maxAgeSeconds = 900, visitorId } = {}) => {
   const fail = (reason) => ({ ok: false, reason });
   if (!secret) return fail("not_configured");
   if (typeof token !== "string" || token.length > 4096) return fail("malformed");
@@ -51,6 +51,10 @@ const verify = (token, secret, { now = Date.now(), maxAgeSeconds = 900 } = {}) =
   if (typeof claims.iat !== "number" || claims.iat > nowS + 60) return fail("bad_iat");
   if (claims.exp - claims.iat > maxAgeSeconds) return fail("lifetime_too_long");
   if (typeof claims.sub !== "string" || !claims.sub.trim() || claims.sub.length > 128) return fail("missing_subject");
+  // v2 claims (optional, so v1 tokens keep working). `aud`, when present, must name Helply. `vid` binds the token to one chat
+  // visitor: it is accepted only when the caller supplies that same visitor id, so a stolen token cannot be replayed elsewhere.
+  if (claims.aud !== undefined && !(Array.isArray(claims.aud) ? claims.aud : [claims.aud]).includes("helply")) return fail("bad_audience");
+  if (claims.vid !== undefined && (typeof claims.vid !== "string" || visitorId === undefined || claims.vid !== visitorId)) return fail("visitor_mismatch");
 
   return {
     ok: true,
@@ -59,6 +63,8 @@ const verify = (token, secret, { now = Date.now(), maxAgeSeconds = 900 } = {}) =
       name: typeof claims.name === "string" ? claims.name.slice(0, 80) : null,
       tenant: typeof claims.tenant === "string" ? claims.tenant.slice(0, 80) : null,
       exp: claims.exp,
+      visitorId: typeof claims.vid === "string" ? claims.vid : null,
+      jti: typeof claims.jti === "string" ? claims.jti.slice(0, 80) : null,
     },
   };
 };

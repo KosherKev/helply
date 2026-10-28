@@ -5,6 +5,7 @@
  *   webhook then fails to update her order. Kofi's logs sit alongside (scoping must hide them).
  * Run:  CLS_BASE_URL=... CLS_WRITE_KEY=sk_live_... npm run seed
  */
+require("../src/loadEnv").loadEnv();
 const { load } = require("../src/config");
 
 const cfg = load();
@@ -34,7 +35,7 @@ const entry = ({ ago, level = "info", method, path, status, ms = 40, user, body 
     duration: ms,
     request: { headers: { authorization: FAKE_JWT, "content-type": "application/json" }, body, query: {}, ip: "197.255.10.20" },
     response: { body: res },
-    error,
+    ...(error ? { error } : {}), // the service's schema rejects error: null
     metadata: { userId: user, ...meta },
   };
 };

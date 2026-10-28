@@ -5,8 +5,9 @@
  */
 
 const NAMES = { en: "English", tw: "Twi", gaa: "Ga", ee: "Ewe", fat: "Fante", dag: "Dagbani", pcm: "Ghanaian Pidgin" };
-// Our codes -> Khaya translation codes. Pidgin ("kpo") appears in some SDK versions only: verify.
-const KHAYA = { en: "en", tw: "tw", gaa: "gaa", ee: "ee", fat: "fat", dag: "dag", pcm: "kpo" };
+// Our codes -> Khaya translation codes. Verified live 2026-10-28: all five below work in both directions.
+// Ghanaian Pidgin is NOT supported by Khaya (UNSUPPORTED_LANGUAGE_PAIR for en-kpo and kpo-en), so it goes to Gemma.
+const KHAYA = { en: "en", tw: "tw", gaa: "gaa", ee: "ee", fat: "fat", dag: "dag" };
 // Speech codes differ from translation codes (see Maame's khayaTtsClient / khayaAsrClient).
 const ASR_CODE = { en: "eng", tw: "tw", gaa: "gaa", ee: "ewe", fat: "fat", dag: "dag" };
 const TTS_CODE = { en: "eng", tw: "twi", gaa: "gaa", ee: "ewe", fat: "fat", dag: "dag" };

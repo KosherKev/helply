@@ -6,12 +6,12 @@ Single source of truth for project state. Read top to bottom at the start of eve
 
 | Field | Value |
 |---|---|
-| Current phase | **v1.1 expansion in progress.** API (SQLite, auth, workspaces, webhooks, OpenAPI) and the `web/` app (homepage + `/demo`) are committed. **Landing page built in `site/`** (Next.js static export). Remaining: user dashboard, deployment. Task: `docs/CLAUDE_CODE_PROMPT.md`. |
-| Blocking issues | None hard-blocking. Needs the user's keys (KL-2, KL-3) and a committed `userId` filter in central-logging-service (KL-9). |
-| Next action | Confirm `GITHUB_URL` with Kevin (KL-20); deploy `site/deploy` (`npm run build:all` in `site/`); then the user dashboard. |
-| Repo state | Git repo on `main` with commits up to the landing page (see Changelog). Landing page on branch `landing-page`, not merged. Cross-repo: `../central-logging-service` still has an uncommitted `userId` filter (3 files). |
-| Verified running | `npm test` (root): **73/73 pass** with real `npm ci` (no borrowed modules). `site/`: `tsc --noEmit` clean, `next build` clean; Lighthouse mobile on `/` served compressed (`serve`): **performance 92–94, accessibility 100, best practices 100, SEO 100** (LCP 3.0–3.1 s, TBT 70–120 ms, CLS 0), measured on the assembled `site/deploy`. Scroll profile at 1440x900, DPR 2, CPU 4x slowdown: 0.6–1% of frames over 20 ms in round 5 (run-to-run noise; was 4.3% before the round-1 fixes). Round 5 Lighthouse mobile 91–94/100/100/100. `/`, `/demo` and `/app/*` load from `site/deploy` with no errors. Desktop 1440x900 and mobile 390x844 walkthroughs: no console errors, no horizontal scroll. **Not verified against live Gemma, Khaya or central-logging-service.** No root linter (KL-7). |
-| Deadline | Hackathon submission ~19:00 Africa/Accra, 2026-10-28. Feature freeze target 18:00. |
+| Current phase | **v1.1 built** (API + OpenAPI + web app). Remaining before submission: keys, live-service verification, deploy, demo rehearsal, Devpost write-up. |
+| Blocking issues | None in the verified demo path. Open: `userId` filter in `../_Modules/central-logging-service` still uncommitted (KL-9, user action); native-speaker Twi/Ga/Ewe samples (KL-17); ASR untested with a real recording (KL-2); ChatFlow architecture awaiting the user's confirmation. |
+| Next action | Continue `docs/API_V1_2_PLAN.md` order: inbox counts + assign, then issues, playbooks, handoff rules, knowledge gaps, feedback/quality. ChatFlow-side wiring needs the user's go-ahead to touch that repo. Dashboard developer builds against `npm run dev:mock` (real: onboarding, profile, FAQ, channels, relay). |
+| Repo state | Git repository on `main`, last commit `5cf6745`. **Uncommitted from the 2026-10-28 live-verification session:** `src/loadEnv.js`, `test/loadEnv.test.js`, `scripts/verify-live.js`, edits to `src/server.js`, `scripts/seed-logs.js`, `scripts/check-khaya.js`, `package.json`, this file. `../central-logging-service` `userId` filter still uncommitted. |
+| Verified running | `npm test`: **77/77 pass** (Node 22.12, `--experimental-sqlite`). `cd web && npm run build` (tsc + vite + prerender): clean. Lighthouse mobile on the production build of `/`: **performance 96, accessibility 100, best practices 100**, no console errors. UI exercised in the in-app browser against the real API with **scripted fakes for Gemma, Khaya and the log service** (login, overview, conversations, takeover, translated reply preview, tickets, connections test, API key, webhook SSRF refusal, invite, audit), and checked at 375px (no horizontal scroll). **Not verified against live Gemma, Khaya or central-logging-service** (attempted from the build sandbox on 2026-10-28: network blocked, so inconclusive, not failed). `scripts/verify-live.js --e2e` was validated against the mock server (6/6 e2e steps). No linter configured (KL-7). |
+| Deadline | Hackathon submission ~19:00 Africa/Accra, 2026-10-28. Feature freeze 18:00. |
 
 ## Reconciliation (2026-10-28, landing-page session)
 
@@ -31,17 +31,68 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 
 ## Decisions log
 
-### 2026-10-28
-- **Name kept as "Helply"** at the user's instruction ("it's just for the hackathon"), despite an established AI support product of the same name (Helply, Inc., formerly Groove). Mitigation: the name lives in one constant (`HELPLY_BRAND` / `web/src/brand.ts`). Revisit before any public launch.
-- **Retrieval, not tools.** The model never calls a tool and never chooses whose logs to read; it proposes hints, code validates and fetches. Matches ChatFlow's own "model has no tools" rule and removes the main prompt-injection risk.
+### 2026-10-28 (v1.0)
+- **Name kept as "Helply"** at the user's instruction, despite an established AI support product of the same name. The name lives in one constant (`HELPLY_BRAND` / `web/src/brand.ts`). Revisit before any public launch.
+- **Retrieval, not tools.** The model never calls a tool and never chooses whose logs to read.
 - **Identity = short-lived HS256 token** signed by the company backend (`node:crypto`, no JWT dependency). Verified `sub` is the only user id used for log lookups.
-- **Scope enforced twice** (query + per-row re-check) and **redaction on read**, because central-logging-service does no redaction at ingest.
-- **New repo, adapters to existing products.** ChatFlow (ISC, no LICENSE file), Maame (no license) and LogPulse (README says MIT, no LICENSE file) are not published here; central-logging-service is MIT. Helply is a fresh MIT repo that integrates through HTTP/adapters. Khaya ASR/TTS client shapes were ported from Maame's working clients.
-- **central-logging-service gets a `userId` filter** (`metadata.userId`, string-only to block `userId[$ne]=` injection, plus an index) rather than filtering client-side. Edited in the working tree only; no git operations (git in the build sandbox needs delete permission across the user's whole GitHub folder).
-- **Zero-dependency core, CommonJS, in-memory store** for speed. Persistence is v1.1 work.
-- **Khaya translate endpoint is configurable** (`KHAYA_TRANSLATE_PATH`) and shipped with `npm run check:khaya` instead of guessing silently.
-- **WhatsApp calling deferred.** Needs a Cloud API number and a WebRTC media server; not feasible for the deadline. Voice is demoed with browser mic/audio upload through Khaya.
-- **Dashboard "users" interpreted as company team members** (owner/admin/agent), not end customers. Change if wrong.
+- **Scope enforced twice** (query + per-row re-check) and **redaction on read**.
+- **New repo, adapters to existing products** (licensing of ChatFlow/Maame/LogPulse unclear; central-logging-service is MIT).
+- **central-logging-service gets a `userId` filter** (uncommitted in that repo).
+- **Khaya translate endpoint is configurable** (`KHAYA_TRANSLATE_PATH`) with `npm run check:khaya`.
+- **WhatsApp calling deferred.** Voice is demoed with the browser mic through Khaya.
+- **Dashboard "users" = company team members** (owner/admin/agent), not end customers.
+
+### 2026-10-28 (v1.1 session)
+- **SQLite via `node:sqlite`, not `better-sqlite3`.** Keeps the runtime dependency list at Express only. Cost: Node >= 22.5 and the `--experimental-sqlite` flag on Node < 22.13 (the npm scripts pass it). `engines` is now `>=22.5`. Migration file: `migrations/001_init.sql`; a test asserts every tenant table has `workspace_id` and that audit events are immutable (DB triggers).
+- **Isolation by construction.** Every repository method takes the workspace id first and throws without it (tested for 11 methods); the agent only ever sees a workspace-bound store façade. Principal workspace id comes from the credential. Customer tokens: the `tenant` claim only selects *which workspace secret* verifies the token; a token signed with workspace A's secret that claims tenant B is treated as anonymous (tested).
+- **Anonymous widget callers** identify the workspace with a publishable `publicKey` (knowledge-base answers only). Without a token or key, only the default (env-backed) workspace is reachable, and only when demo mode, `HELPLY_JWT_SECRET` or `CONSOLE_KEY` is set.
+- **Contract change:** console endpoints with no credential outside demo mode return `401` (were `503 console_not_configured`); the existing test was updated. `GET /v1/tickets` returns `{ data, nextCursor }` and keeps `tickets` as an alias. Legacy `X-Console-Key` and the demo-mode open console map to the default workspace only.
+- **Roadmap cuts (not demo-visible by 18:00):** `GET /widget.js`, `POST /v1/widget/session`, customer-side SSE (replaced by a polling endpoint, `GET /v1/support/conversations/:id/messages`), `Idempotency-Key`. They are listed in `openapi.yaml` as `x-planned` and a contract test asserts they stay unrouted until built. Added instead: `GET /v1/members` (assignee pickers without exposing emails), `POST /v1/identity/rotate-secret`, `POST /v1/conversations/:id/translate-preview`, `POST /v1/auth/accept-invite`, `GET /v1/identity`.
+- **Spec of record = `docs/openapi.yaml`, generated** from `scripts/build-openapi.js` (committed). `test/contract.test.js` checks: yaml equals generator output; routes in code == documented operations; each guard's role/scope/legacy flag matches the spec; real responses match their schemas (a small JSON-Schema checker, self-tested).
+- **Review queue semantics:** with `holdFlaggedReplies` on, any reply (AI or agent) whose back-translation similarity is below the workspace threshold is held and invisible to the customer until approved (optionally edited) or rejected. Default off.
+- **Webhook SSRF:** https only; private/loopback/link-local/metadata/mapped-IPv6 blocked; DNS validated at connect time via a custom `lookup` (rebinding-safe); redirects never followed; capped time and size; 3 retries with backoff. Log-source URLs get the same checks unless `ALLOW_PRIVATE_LOG_SOURCES` (on in demo mode).
+- **Frontend:** Vite + React + TS + Tailwind v4, React Router; homepage is **prerendered at build time** into `dist/index.html` (sections work with JS off; the same HTML is injected in dev so hydration matches). Fonts self-hosted via `@fontsource` (removed a render-blocking Google Fonts request). Tokens live in memory only (a refresh signs the dashboard out, by design). Charts are hand-rolled SVG.
+- **No machine-written Twi.** The `/demo` Twi quick prompt appears only when `VITE_TWI_SAMPLE` is set to a native speaker's message. Pidgin prompt uses the wording from `FRONTEND_SPEC.md` (still unverified by a speaker).
+
+### 2026-10-28 (handover)
+- **Frontend handed to others; Kevin goes backend-only.** Handover docs in `docs/handover/` (index, landing page, dashboard+demo, language/demo/write-up). `npm run dev:mock` (`scripts/dev-mock-server.js`) runs the real app with scripted fakes so they need no keys.
+- **Brand kit added** to `docs/brand/` (guide HTML + SVG/PNG assets; three SVGs copied to `web/public/brand/`). **The guide's palette (Helply Blue `#2563EB`, Deep Navy, Ice Blue) and Plus Jakarta Sans differ from what the web app currently uses (green/gold, Space Grotesk).** Not re-skinned yet: it is the first job in both frontend handover docs. The guide has no gold/green, so status/cited-line colours need a designer decision (suggestion in `docs/brand/README.md`).
+
+### 2026-10-28 (live-verification prep)
+- **`.env` is now actually loaded.** Nothing in the repo read `.env` (no `--env-file`, no dotenv), so keys added there were ignored by `npm start`, `seed` and `check:khaya`. Added a dependency-free loader (`src/loadEnv.js`; the real environment wins; returns names only). It runs in the server's `require.main` block and in the scripts, not on import, so tests never read the developer's real keys.
+- **`npm run verify:live`** is the single live check (env names, Gemma model-id discovery by listing the key's models, Khaya translate/TTS, log service incl. whether the `userId` filter is active, optional `--e2e` demo story). It must be run on the user's machine: the build sandbox cannot reach Khaya or localhost services. It never prints secrets.
+- **Did not commit from the build sandbox:** git there needs delete permission across the user's whole GitHub folder; commit manually (see Changelog).
+
+### 2026-10-28 (live verification, first real run)
+- **Log service moved:** it is at `../_Modules/central-logging-service` (not `../central-logging-service`). Its `.env` points at a **shared MongoDB Atlas cluster with real apps' logs**, so Helply's demo runs against a separate instance on **local Mongo** (`scripts/start-local-cls.sh`, database `helply_demo_logs`, port 8080). Two scoped keys were minted there with that service's own CLI (`helply-read`: `logs:read`; `helply-seed`: `logs:write`) and written to this repo's `.env` as `CLS_API_KEY` / `CLS_WRITE_KEY` (old values backed up in `.env.bak-before-local-cls`, gitignored). The previous values were unknown to the service (403).
+- **Khaya verified live:** translate en->tw/ee/gaa/fat/dag and back, plus Twi TTS, all work with the configured path/body. **Ghanaian Pidgin is not supported by Khaya** (`UNSUPPORTED_LANGUAGE_PAIR`), so Pidgin now goes straight to Gemma (flagged lower confidence). Pidgin voice (ASR/TTS) has no Khaya code and will not work.
+- **Log service verified live:** read key accepted; a read key cannot write (403); `metadata.userId` present; the `userId` filter works server-side (unknown user returns 0 rows). The seed script's payload was wrong (`error: null` rejected by the service's schema); fixed, 40 fictional logs seeded.
+
+### 2026-10-28 (v1.2 planning)
+- **v1.2 contract written before code.** 52 planned operations are in `docs/openapi.yaml` (`x-planned`, `x-priority` P0/P1/P2) generated by `scripts/build-openapi.js`; behaviour in `docs/API_V1_2_PLAN.md`; dashboard pages and workflows in `docs/ADMIN_DASHBOARD_SPEC.md`. The contract test asserts planned operations are **not** routed, so shipping one forces removing `x-planned`.
+- **Parallel work without a backend:** `npm run dev:mock` also serves fixtures for every planned route (`scripts/planned-fixtures.js`, `planned-mock-router.js`), and `test/planned-fixtures.test.js` validates each fixture against the spec.
+- **Architecture decision (recommended, awaiting the user's confirmation):** ChatFlow stays the chat channel and human inbox; Helply is the AI brain behind it, linked by a per-channel relay key (`hr_live_...`) that ChatFlow's server uses on `/v1/relay/*`. Helply's knowledge base is the source of truth for AI answers. Customer identity reaches Helply as the company-signed token carried through ChatFlow (visitors there are anonymous; their name/email are client-supplied and untrusted); token v2 adds optional `aud`, `jti`, `vid` and public-key (RS256/ES256) verification.
+- **Onboarding must capture business information:** business profile, FAQ, documents/sites, error playbooks (error code to customer wording) and handoff rules, not only documents.
+
+### 2026-10-28 (Gemma verified live)
+- **Gemma 4 is a thinking model.** Reasoning tokens count against `maxOutputTokens`, so small budgets returned an empty answer. Only `thinkingConfig.thinkingLevel: "minimal"` is accepted (`thinkingBudget: 0` and `"low"` are 400s). The adapter now sends it by default (`GEMMA_THINKING_LEVEL`, empty to omit), steps down on a 400 (without thinking config, then inline without system/JSON mode), and reports "spent its whole output budget on reasoning" instead of a bare empty response. 5 tests.
+- **Model choice:** `gemma-4-31b-it` kept. `gemma-4-26b-a4b-it` is ~20% faster but its log-explanation step returned no usable result on the same prompt.
+- **Live demo story passes** (`npm run verify:live -- --e2e`): anonymous account question refused, Ama's failed payment diagnosed with cited lines and a ticket, Kofi's data never returned, knowledge-base answer. Pidgin (via Gemma) replied in natural Pidgin, round-trip similarity 0.7. A Twi message went through Khaya; its back-translation came out wrong (similarity 0.14) and was correctly flagged "needs review", which is the safety net doing its job.
+
+### 2026-10-28 (relay backend built)
+- **Built:** channels (`/v1/channels`, relay key `hr_live_...` stored hashed, shown once, rotate/disconnect revoke at once, one workspace per ChatFlow property) and the relay API (`/v1/relay/message|events|identify|config`) behind a relay-only guard with a per-channel rate limit. Migration `002_channels.sql` (`channels`, `channel_conversations`).
+- **Shared conversation core** (`src/routes/converse.js`): the direct support API and the relay now run the identical pipeline and persistence, so identity, scoping, redaction, ticketing and notifications cannot diverge between channels.
+- **Token v2 (additive):** optional `aud` (must be `helply`) and `vid` (bound to one visitor; accepted only when the caller supplies that visitor id, so a visitor-bound token is rejected on the direct API). `/v1/identity/tokens` accepts `visitorId`.
+- **Identity on the relay** is verified on every message against the channel workspace's own secret; ChatFlow only carries the token. A `tenant` claim naming another workspace is refused. A different verified customer on the same ChatFlow conversation starts a fresh Helply conversation (audited `relay_identity_changed`). The visitor-to-customer link is informational and never used for a log lookup.
+- **Pause switch:** workspace setting `aiLive` (default true). When false, both paths record the message, mark the conversation `needs_human`, notify, and do no model or log work. Stored as a setting rather than the column the plan sketched.
+- **Verified live** against real Gemma, Khaya and the log service: verified Pidgin visitor answered with a ticket (17.8 s), expired-token follow-up falls back to anonymous in the same conversation, `agentOnline` and `agent_joined` suppress the AI, dashboard shows the conversation, channel test passes.
+- ChatFlow's repo was **not** touched; `docs/CHATFLOW_INTEGRATION.md` specifies what it must do.
+
+### 2026-10-28 (onboarding, business profile, FAQ)
+- **Built:** computed onboarding checklist (9 steps, `optional` flag, `readyForLive`), test-as-a-customer, go-live/pause; business profile; FAQ with CSV import; migration `003` (`business_profiles`, `faqs`, `onboarding_state`, `is_test` on conversations and tickets); RFC 4180 CSV parser (`src/util-csv.js`).
+- **Decision:** new workspaces start with the AI paused and can go live only through the checklist (`PATCH aiLive: true` obeys the same gate); the demo/default workspace and existing ones stay live. Test runs are real but invisible (lists, analytics, notifications).
+- **Decision:** company text is retrieved like documents (FAQ boosted, profile excerpt only when relevant), never pasted wholesale into prompts; `tone` is applied to the knowledge and explanation prompts.
+- **Verified live** (real Gemma, Khaya, logs): formal tone applied; opening hours answered from the profile; cash-on-delivery from the FAQ; test run hidden from lists; checklist moved to ready. The demo workspace in `.data/helply.db` now holds that profile and FAQ.
 
 ### 2026-10-28 (landing page)
 - **Landing page lives in its own folder, `site/`** (Next.js 16 App Router, `output: 'export'`), with its own `package.json`. It never imports from or calls the API, so `src/` and `web/` are untouched. Stack per the user: Next.js, TypeScript, three.js, GSAP + ScrollTrigger, Lenis, lucide-react, Tailwind v4.
@@ -73,10 +124,10 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 
 ## Known Limitations
 
-1. In-memory store: tickets and knowledge reset on restart. (v1.1: SQLite.)
-2. Khaya **translate** path/body (`/v1/translate`, `{in, lang}`) is unverified; ASR/TTS shapes come from Maame. Run `npm run check:khaya`.
-3. Gemma 4 model id on the Gemini API is unverified (`GEMMA_MODEL=gemma-4-31b-it` is a guess). The adapter retries without system instructions/JSON mode on a 400.
-4. Ghanaian Pidgin code for Khaya (`kpo`) is unverified; falls back to Gemma.
+1. ~~In-memory store.~~ Resolved: SQLite (`HELPLY_DB_PATH`, default `.data/helply.db` for `npm start`). Tests use `:memory:`.
+2. ~~Khaya translate path/body unverified.~~ Verified live (translate for tw/ee/gaa/fat/dag, TTS for Twi). **ASR is still untested** (needs a .wav: `npm run check:khaya -- file.wav`).
+3. ~~Gemma model id and generation unverified.~~ **Verified live 2026-10-28** (see Decisions). `gemma-4-31b-it` is valid for generateContent with the configured key (`gemma-4-26b-a4b-it` also exists). **Generation itself is unverified: the project returns 402 (credits depleted).**
+4. ~~Pidgin code for Khaya unverified.~~ Khaya does **not** support Pidgin; it always uses the Gemma fallback and has no voice support.
 5. Round-trip quality is word-overlap (Jaccard), a cheap signal, not a human evaluation.
 6. Single tenant; no accounts. Console is protected by one shared `CONSOLE_KEY`.
 7. No analyzer/linter or CI configured. Verification is `node --test` + `node --check`.
@@ -121,91 +172,49 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 ## Changelog
 
 ### 2026-10-28: v1.0 backend, docs, tests
-- **Built:** config; token sign/verify; redaction; read-only log client; evidence builder (hint validation, scope re-check, ranking, line ids); Gemma adapter; Khaya client; language layer with fallback and round-trip similarity; support agent (identity, understanding, translation, knowledge answers, evidence-based explanations, ticket creation, output cleaning); in-memory store; Express API (health, config, demo token, text and voice support, console tickets/knowledge, CORS, rate limit); seed and Khaya check scripts; docs (README, ARCHITECTURE, API_CONTRACT, FRONTEND_SPEC, DEMO_SCRIPT, API_ROADMAP, CONTRIBUTING, CLAUDE_CODE_PROMPT); `CLAUDE.md`.
-- **Cross-repo:** `central-logging-service` `GET /api/v1/logs?userId=` filter + index + `tests/logsUserFilter.test.js` (uncommitted there).
-- **Broke and fixed:** `npm install` was blocked (403) in the build sandbox, so Express was borrowed from the other repo for verification. A first run of that repo's suite with `npx jest` showed 12 failures; they were only the missing `--experimental-vm-modules` flag (`npm test` passes it), then 78/78. One Helply run showed 23/24 because Express was off the path; with it, 28/28.
-- **Deliberately not done:** frontend implementation, persistence, accounts/roles, WhatsApp calling, live-API verification, committing (see KL-16).
+- **Built:** config; token sign/verify; redaction; read-only log client; evidence builder; Gemma adapter; Khaya client; language layer; support agent; in-memory store; Express API; seed and Khaya check scripts; docs; `CLAUDE.md`.
+- **Cross-repo:** `central-logging-service` `?userId=` filter (uncommitted there).
 - **Commit:** none (no git repository yet).
 
-### 2026-10-28: landing page (`site/`)
-- **Built:** a Next.js static-export landing page in `site/`:
-  - an entry gate with load progress
-  - a three.js atrium world with a reflective floor, desks, a skyline and canvas screens
-  - a 7k-flake instanced cloud sampled from the mark SVG, morphing mark → bubble → globe → shield → ring, with cursor push
-  - five warped scene headlines and the ring flash into the flat page
-  - a word scrub with a focus list, the "Who it's for" glitch gallery, the trust table with the cursor follower, contact, and the next-page reveal
-  - the nav with a Settings popover (motion, quality) and a mobile menu
-  - an AI orb that opens the demo
-  - self-hosted fonts, Lenis on the GSAP ticker, reduced-motion and no-JS/no-WebGL fallbacks, and Open Graph/icons from the brand kit
-- **Broke and fixed:**
-  - headline clipping
-  - the see-through gate centre
-  - a navy H that was invisible on the dark atrium (recoloured with the on-navy palette)
-  - 40px horizontal overflow from the warp skew (`overflow-x-clip`)
-  - the IntersectionObserver visibility counter (replaced with a Set)
-  - Lighthouse fixes:
-    - LCP hidden behind the gate
-    - scrub-word and focus-list contrast
-    - footer link target size
-    - 12px minimum mono/tag size
-    - source maps
-  - Result: Lighthouse went from 73/93/96/100 to 93–94/100/100/100.
-- **Deliberately not done:** touching `src/`, `web/`, `web/src/app/*` or `Demo.tsx`; a `/docs` page; generated imagery; changing the four promises; merging.
-- **Commit:** `330a83e` on branch `landing-page`.
+### 2026-10-28: v1.1 (this session)
+- **Reconciliation (Phase 0).** `PROGRESS.md` matched the code: no git history existed, so the first commit `69e08d6` captured v1.0 as found. A clean `npm install` + `npm test` gave 28/28 (KL-8 closed). Node here is 22.12, which needs `--experimental-sqlite`.
+- **Built (backend):** migration + SQLite repository (workspace id required everywhere); scrypt accounts, hashed 12h sessions, login backoff, owner/admin/agent roles read live; API keys with scopes; per-workspace identity secret + `POST /v1/identity/tokens`; encrypted log source with a plain-language connection test; conversations/messages with `conversationId` continuity, takeover, agent replies with translation + round-trip preview, resolve, review queue; tickets with cursor pagination, filters, assignee, notes, GitHub-issue export; knowledge upload/edit/reindex; analytics summary + timeseries (root causes fingerprinted); append-only audit (every log lookup writes one); HMAC-signed webhooks with SSRF protection and delivery log; customer erasure; retention sweep; dashboard SSE; per-IP and per-workspace rate limits with headers; request ids; `trust proxy`.
+- **Built (spec/tests):** `docs/openapi.yaml` (+ generator) and contract tests; 46 new tests (auth, authorization matrix over every route, workspace isolation matrix, conversation flow, SSRF/webhooks, data/knowledge/settings, rate limits, SSE).
+- **Built (web):** design system, prerendered homepage, `/demo` (signed-in-as, quick prompts, mic, Glass Box), `/app` dashboard: login/signup/accept-invite, Overview, Conversations (+detail with Glass Box, takeover, translation preview), Tickets (+detail, copy as GitHub issue), Review queue, Knowledge (drag-drop, csv upload), Connections, Developers (keys, webhooks), Team, Audit, Settings (+ customer erasure).
+- **Broke and fixed:** (1) isolation test showed `retrieve()` checked the query before the workspace id; fixed. (2) Browser walk-through showed free-text `token=...` was not redacted (KL-18) and `cleanText` mangled `_` (KL-19); both fixed with tests. (3) Lighthouse found React hydration error #418 (server rendered `<Home/>` while the client wrapped it in `<Suspense>`); server now renders the same `<App/>`, and dev injects the prerender too. (4) Render-blocking Google Fonts (perf 87): fonts self-hosted, perf 96. (5) The generated YAML used anchors that the parser rejected; aliases disabled.
+- **Deliberately not done:** widget script and session bootstrap, customer SSE, `Idempotency-Key`, `/docs` page, email delivery, password reset, frontend unit/e2e tests, live-API verification, deployment, demo rehearsal.
+- **Handover (later same day):** brand kit + 4 handover docs + `dev:mock` script added (see Decisions).
+- **Processes:** the dev API (scripted fakes), Vite dev server and preview server started this session were stopped; none left running.
+- **Commits:** `69e08d6` (v1.0 as found) ... `2519d06` (v1.1 code, dashboard, fixes, docs). Docs and this file: `e813de0`.
 
-### 2026-10-28: landing page round 2 (routing, photos, brand fonts, scroll performance)
-- **Built:**
-  - `site/scripts/assemble.mjs`, plus `npm run assemble`, `build:all` and `preview`
-  - the dev demo URL pointing at Vite
-  - Pexels photos in the gallery and contact block
-  - Emotion's exact gallery grid
-  - Plus Jakarta Sans throughout
-  - the white nav
-  - the GPU flake shader
-  - the world loop on the GSAP ticker, with adaptive resolution
-- **Broke and fixed:** the gallery caption wrapped one word per line on phones (moved under the heading). Measuring Lighthouse against Python's `http.server` understated performance (no compression); measured with `serve` instead.
-- **Verified:**
-  - `tsc` clean, build clean
-  - Lighthouse mobile 92–94/100/100/100
-  - no frames over 20 ms at 4x CPU slowdown
-  - desktop and mobile screenshots: no console errors, no horizontal scroll
-  - `/demo` and `/app/*` load from `site/deploy`
-  - root `npm test` 73/73
-- **Deliberately not done:** editing `web/`; deploying; crediting individual photographers.
-- **Commit:** `22fafcb` on branch `landing-page`.
+### 2026-10-28 (onboarding)
+- **Built:** see Decisions "onboarding, business profile, FAQ". Tests 110/110 (+8), spec promoted 11 operations (32 planned remain). Existing tests now register workspaces already live via a helper option; relay resume test uses the repository because the API gate applies. **Not done:** playbooks, handoff rules, inbox counts/assign, issues, gaps, quality, public-key identity, password reset, customers, site crawler.
 
-### 2026-10-28: landing page round 3 (gallery order, shake, plain hover text, footer word)
-- **Built:** even-row gallery; smooth card reveal; plain-language "What Helply finds" hover notes; `wordShape` and the footer keyframe spelling the product name; tight "Who it's for" heading; centred "[ Just continue to reveal ]".
-- **Broke and fixed:** the stepped glitch entry shook cards sideways by 7–13 px (measured); replaced it. The photo entry animation's fill mode would have blocked the hover zoom (`backwards` instead of `both`).
-- **Verified:** `tsc` and build clean; Lighthouse mobile 93/100/100/100; no frames over 20 ms at 4x CPU slowdown; 0 px card movement after settling; desktop, tablet and phone screenshots; root `npm test` 73/73.
-- **Commit:** `04e450b` on branch `landing-page`.
+### 2026-10-28 (relay backend)
+- **Built:** items in Decisions "relay backend built"; tests 102/102 (+14: channel lifecycle, relay auth negatives, identity rejections, suppression, events, isolation, rate limits, 503 handling); `docs/CHATFLOW_INTEGRATION.md`; spec promoted 9 operations from planned to built (43 planned remain); fixtures for them removed; web types updated.
+- **Fixed on the way:** three tests encoded the old world (single migration, relay routes under the API-key matrix, planned count); updated deliberately.
+- **Not done:** ChatFlow-side changes; any other v1.2 route.
+- **Processes:** API and log service started for the live check were stopped. The temporary live-test channel was deleted.
 
-### 2026-10-28: landing page round 4 (particle object matched to Emotion)
-- **Built:** bead geometry and a new vertex shader in `site/src/components/world/flakes.ts` (morph through cloud, halo, per-bead float, drift, shimmer, sparkle, wide cursor glow); thick-slab mark sampling in `shapes.ts`; lean-to-cursor, scroll turn and two-axis drift in `World.tsx`.
-- **Broke and fixed:** first bead pass was too dense and too white (sticky look); second pass too blurry to read the mark; final pass tightens the core (offset 0.08, halo 10%, float 0.045) and lowers environment shine.
-- **Verified:** `tsc` and build clean; side-by-side captures against Emotion (idle, cursor sweep, scroll morph); Lighthouse mobile 93/100/100/100; 0.1% frames over 20 ms at 4x CPU slowdown; no console errors.
-- **Commit:** `6d3b772` on branch `landing-page`.
+### 2026-10-28 (Gemma live)
+- **Fixed:** Gemma adapter for thinking models (+5 tests, 88 total); `.env.example` documents `GEMMA_THINKING_LEVEL`.
+- **Verified live:** Gemma generation and JSON mode, Khaya, log service, the full demo story, Pidgin and Twi paths. **Not verified:** ASR, voice in a browser.
+- **Processes:** the API and the isolated log service started for verification were stopped.
 
-### 2026-10-28: landing page round 5 (legible mark, flowing beads, Emotion loader and light bang)
-- **Built:**
-  - `shapes.ts`: the mark is sampled from its own paths (Path2D), with heavier strokes and an open bubble.
-  - `flakes.ts`: flow-field float, smaller beads, softer light, a one-off `uBang` white flash, and the periodic pulse removed.
-  - `Gate.tsx`: the loader rebuilt (progress line and counter, cursor smoke trail, beating spark that opens into a breathing cloud-edged hole).
-  - `MotionRoot.tsx`: the flash goes white before the flat page and clears after it.
-  - `World.tsx`: a gentler intro camera and less resting sway.
-- **Broke and fixed:**
-  - The first colour pass washed the beads to white under the room lights. Fixed with a darker base, lower shine and a small self-glow.
-  - The first float was still too small to read as motion.
-- **Verified:**
-  - `tsc` and `build:all` clean; root `npm test` 73/73.
-  - Captures of the loader, trail, entry and flash hand-off, compared with Emotion's.
-  - Lighthouse mobile 94/100/100/100; 0.6% of frames over 20 ms at 4x CPU slowdown; no console errors.
-- **Not done:** fluid-sim trail (KL-27); Safari check (KL-28).
-- **Commit:** `d87d733` on branch `landing-page`.
+### 2026-10-28 (v1.2 planning and Gemma key)
+- **Built:** v1.2 planned contract, fixtures, mock router, shared schema checker (`test/_schema.js`), `docs/API_V1_2_PLAN.md`, `docs/ADMIN_DASHBOARD_SPEC.md`; handover index updated. Tests 83/83.
+- **Found:** Gemma key valid, model id valid, generation blocked by 402. `verify:live` now treats Pidgin-unsupported as expected.
+- **Not done:** any v1.2 backend code; end-to-end with the real model; ChatFlow-side changes (not touched).
 
-### 2026-10-28: loader minimum run
-- **Built:** the loader counts steadily from 0000 to 100 over at least 3.2 s (0.8 s with motion off) and never runs ahead of real progress; Enter appears only after both finish. Before this, a fast load swapped the progress bar for the buttons after about 1.5 s, so the loader seemed to vanish.
-- **Found:** the chat bot's "server error" is the demo with no API behind it (KL-29). No code change; it needs `.env` keys.
-- **Verified:** `tsc` and `build:all` clean; on the user's `next dev`, the gate stays until Enter and the counter runs for about 4 s.
-- **Commit:** `dc7f672` on branch `landing-page`.
+### 2026-10-28 (live verification, first real run)
+- **Committed** the earlier uncommitted `.env`-loading and `verify:live` work (`0cab1da`, `8ee8552`, `fca633b`).
+- **Fixed:** seed payload (`error: null`); Pidgin no longer attempts Khaya (+ test). **Added:** `scripts/start-local-cls.sh`. Tests 78/78.
+- **Still open:** Gemma key; model id; ASR with a real recording; end-to-end demo story (`npm run verify:live -- --e2e`); `userId` filter in `_Modules/central-logging-service` still uncommitted (KL-9, user action); native-speaker samples.
 
+### 2026-10-28 (later): live-verification prep
+- **Built:** `src/loadEnv.js` + `test/loadEnv.test.js` (3 tests); `.env` loading in `src/server.js`, `scripts/seed-logs.js`, `scripts/check-khaya.js`; `scripts/verify-live.js` + `npm run verify:live`.
+- **Found:** `.env` was never read by any entry point. `GEMMA_API_KEY` is empty. Khaya and the local log service are unreachable from the build sandbox (inconclusive, not a failure).
+- **Broke and fixed (in my own script, found by running it against the mock server):** the e2e capability check wrongly failed when voice was off; the Kofi-scoping check false-positived on the customer's own echoed words. Both fixed; e2e then passed 6/6 against the mock.
+- **Verified:** `npm test` 77/77; `node --check` clean; no leftover processes.
+- **Deliberately not done:** live verification, committing, new endpoints (`/widget.js`, `/docs` page remain unbuilt: KL-10).
+- **Commit:** none (uncommitted). Suggested, one per issue: `git add src/loadEnv.js test/loadEnv.test.js src/server.js scripts/seed-logs.js scripts/check-khaya.js && git commit -m "Load .env in server and scripts"`, then `git add scripts/verify-live.js package.json && git commit -m "Add live verification script"`, then `git add PROGRESS.md && git commit -m "Update PROGRESS"`. Record the hashes here.

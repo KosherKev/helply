@@ -75,7 +75,7 @@ export interface Conversation {
 }
 export interface ConversationDetail extends Conversation { messages: Message[]; ticketIds: string[] }
 
-export interface WorkspaceSettings { languages: LangCode[]; escalationThreshold: number; retentionDays: number; holdFlaggedReplies: boolean; brandColor: string }
+export interface WorkspaceSettings { languages: LangCode[]; escalationThreshold: number; retentionDays: number; holdFlaggedReplies: boolean; brandColor: string; aiLive: boolean }
 export interface Workspace { id: string; name: string; slug: string; publicKey: string; settings: WorkspaceSettings; createdAt: string }
 export interface User { id: string; email: string; name: string | null }
 export interface Session { session: string; expiresAt: string; user: User; role: Role; workspace: Workspace }
@@ -94,3 +94,7 @@ export interface AnalyticsSummary {
   topRootCauses: { fingerprint: string; summary: string | null; count: number; lastSeen: string }[]; ticketsNeedingHuman: number
 }
 export interface PendingReply { id: string; conversationId: string; role: 'ai' | 'agent'; text: string; english: string | null; language: string | null; roundTrip: RoundTrip | null; customerMessage: string | null; createdAt: string }
+
+export interface Channel { id: string; kind: 'chatflow'; label: string; externalId: string; status: 'pending' | 'connected' | 'error'; lastSeenAt: string | null; keyPrefix: string; createdAt: string }
+export interface ChannelCreated extends Channel { relayKey: string }
+export interface ChannelTest { ok: boolean; issues: { code: string; message: string }[] }

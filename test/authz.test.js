@@ -43,7 +43,7 @@ test("an API key can only reach routes whose scope it holds", async () => {
     const key = (await s.call("/v1/api-keys", { method: "POST", token: owner.token, body: { name: "ro", scopes: ["tickets:read"] } })).data;
     assert.ok(key.key.startsWith("hk_live_"));
     assert.equal((await s.call("/v1/tickets", { token: key.key })).status, 200);
-    const scoped = s.app.locals.routes.filter((r) => r.rule);
+    const scoped = s.app.locals.routes.filter((r) => r.rule && r.rule.role !== "relay"); // relay routes take hr_ keys only (see relay.test.js)
     for (const r of scoped) {
       const allowed = r.rule.scope === "tickets:read";
       const res = await s.call(fill(r.path), { method: r.method, token: key.key, body: ["POST", "PUT", "PATCH"].includes(r.method) ? {} : undefined });

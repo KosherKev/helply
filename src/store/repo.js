@@ -52,6 +52,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   retentionDays: 30,
   holdFlaggedReplies: false,
   brandColor: "#0F7B4F",
+  aiLive: true, // false = paused: every customer message goes to a person, no model or log work
 });
 
 const createRepo = (db) => {
@@ -169,13 +170,16 @@ const createRepo = (db) => {
   };
 
   // ── conversations & messages ──────────────────────────────────────────
-  const createConversation = (ws, { customerId = null, customerName = null, language = "en" }) => {
+  const createConversation = (ws, { customerId = null, customerName = null, language = "en", isTest = false }) => {
     const id = newId("c");
     const t = now();
-    q("INSERT INTO conversations (id, workspace_id, customer_id, customer_name, language, status, created_at, updated_at) VALUES (?,?,?,?,?,'ai',?,?)").run(id, need(ws), customerId, customerName, language, t, t);
+    q("INSERT INTO conversations (id, workspace_id, customer_id, customer_name, language, status, is_test, created_at, updated_at) VALUES (?,?,?,?,?,'ai',?,?,?)").run(id, need(ws), customerId, customerName, language, isTest ? 1 : 0, t, t);
     return getConversation(ws, id);
   };
   const getConversation = (ws, id) => toConversation(q("SELECT * FROM conversations WHERE workspace_id = ? AND id = ?").get(need(ws), String(id)));
+  /** Bind a verified customer to a conversation once (never overwrites an existing binding). */
+  const bindConversationCustomer = (ws, id, customerId, name = null) =>
+    q("UPDATE conversations SET customer_id = ?, customer_name = COALESCE(customer_name, ?) WHERE workspace_id = ? AND id = ? AND customer_id IS NULL").run(customerId, name, need(ws), String(id)).changes > 0;
   const updateConversation = (ws, id, patch) => {
     const cur = getConversation(ws, id);
     if (!cur) return null;
@@ -186,7 +190,7 @@ const createRepo = (db) => {
     return getConversation(ws, id);
   };
   const listConversations = (ws, { status, language, q: text, userId, from, to, limit, cursor } = {}) => {
-    const where = ["c.workspace_id = ?"];
+    const where = ["c.workspace_id = ?", "c.is_test = 0"];
     const args = [need(ws)];
     if (status) { where.push("c.status = ?"); args.push(status); }
     if (language) { where.push("c.language = ?"); args.push(language); }
@@ -238,15 +242,16 @@ const createRepo = (db) => {
     const n = q("SELECT COALESCE(MAX(CAST(SUBSTR(id, 3) AS INTEGER)), 0) + 1 AS n FROM tickets WHERE workspace_id = ?").get(ws).n;
     const id = `T-${String(n).padStart(4, "0")}`;
     const ts = now();
-    q("INSERT INTO tickets (id, workspace_id, conversation_id, status, priority, assignee_id, title, user_id, language, customer_message, reply_english, root_cause_json, evidence_json, fingerprint, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").run(
+    const isTest = t.conversationId ? (q("SELECT is_test FROM conversations WHERE workspace_id = ? AND id = ?").get(ws, t.conversationId)?.is_test ?? 0) : 0;
+    q("INSERT INTO tickets (id, workspace_id, conversation_id, status, priority, assignee_id, title, user_id, language, customer_message, reply_english, root_cause_json, evidence_json, fingerprint, is_test, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").run(
       id, ws, t.conversationId ?? null, t.status || "open", t.priority || "normal", t.assigneeId ?? null, String(t.title || "Customer issue").slice(0, 140), t.userId || null, t.language || "en",
-      scrubString(t.customerMessage || ""), t.replyEnglish || "", json(t.rootCause), JSON.stringify(t.evidence || []), fingerprint(t.rootCause?.summary), ts, ts
+      scrubString(t.customerMessage || ""), t.replyEnglish || "", json(t.rootCause), JSON.stringify(t.evidence || []), fingerprint(t.rootCause?.summary), isTest, ts, ts
     );
     return getTicket(ws, id);
   };
   const getTicket = (ws, id) => toTicket(q("SELECT * FROM tickets WHERE workspace_id = ? AND id = ?").get(need(ws), String(id)));
   const listTickets = (ws, { status, assigneeId, priority, language, q: text, limit, cursor } = {}) => {
-    const where = ["workspace_id = ?"];
+    const where = ["workspace_id = ?", "is_test = 0"];
     const args = [need(ws)];
     if (status) { where.push("status = ?"); args.push(status); }
     if (assigneeId) { where.push("assignee_id = ?"); args.push(assigneeId); }
@@ -319,13 +324,18 @@ const createRepo = (db) => {
     need(ws);
     const qs = new Set(tokenize(query));
     if (!qs.size) return [];
-    const rows = q("SELECT d.title AS title, c.text AS text FROM knowledge_chunks c JOIN knowledge_docs d ON d.id = c.doc_id AND d.workspace_id = c.workspace_id WHERE c.workspace_id = ?").all(need(ws));
+    const rows = q("SELECT d.title AS title, c.text AS text FROM knowledge_chunks c JOIN knowledge_docs d ON d.id = c.doc_id AND d.workspace_id = c.workspace_id WHERE c.workspace_id = ?").all(ws).map((r) => ({ ...r, boost: 1 }));
+    // FAQ entries are company-approved answers: they rank above documents. Business details are only offered when the question matches them.
+    for (const f of q("SELECT question, answer FROM faqs WHERE workspace_id = ? AND enabled = 1").all(ws)) rows.push({ title: "FAQ", text: `Q: ${f.question}\nA: ${f.answer}`, boost: 1.5 });
+    const p = getBusinessProfile(ws);
+    const detail = [p.name, p.about, p.hours && `Opening hours: ${p.hours} (${p.timezone})`, p.contactEmail && `Email: ${p.contactEmail}`, p.contactPhone && `Phone: ${p.contactPhone}`, p.website && `Website: ${p.website}`].filter(Boolean).join(". ");
+    if (p.about || p.hours || p.contactEmail || p.contactPhone) rows.push({ title: "Business details", text: detail, boost: 1.2 });
     const scored = [];
     for (const r of rows) {
       const words = new Set(tokenize(r.text));
       let hits = 0;
       for (const w of qs) if (words.has(w)) hits += 1;
-      if (hits) scored.push({ title: r.title, text: r.text, score: hits / Math.sqrt(words.size + 1) });
+      if (hits) scored.push({ title: r.title, text: r.text, score: (r.boost * hits) / Math.sqrt(words.size + 1) });
     }
     return scored.sort((a, b) => b.score - a.score).slice(0, k);
   };
@@ -378,6 +388,95 @@ const createRepo = (db) => {
   const listDeliveries = (ws, webhookId, limit = 50) =>
     q("SELECT id, event, status, attempts, response_status AS responseStatus, error, created_at AS createdAt FROM webhook_deliveries WHERE workspace_id = ? AND webhook_id = ? ORDER BY seq DESC LIMIT ?").all(need(ws), String(webhookId), clampLimit(limit, 50));
 
+  // ── business profile, FAQ, onboarding state ───────────────────────────
+  const PROFILE_DEFAULTS = { about: "", website: null, hours: null, timezone: "Africa/Accra", contactEmail: null, contactPhone: null, languages: ["en"], tone: "friendly", escalation: { email: null, phone: null, whatsapp: null }, updatedAt: null };
+  const getBusinessProfile = (ws) => {
+    const r = q("SELECT * FROM business_profiles WHERE workspace_id = ?").get(need(ws));
+    if (!r) return { name: getWorkspace(ws)?.name || "", ...PROFILE_DEFAULTS };
+    return { name: r.name, about: r.about, website: r.website, hours: r.hours, timezone: r.timezone, contactEmail: r.contact_email, contactPhone: r.contact_phone, languages: parse(r.languages_json, ["en"]), tone: r.tone, escalation: { email: null, phone: null, whatsapp: null, ...parse(r.escalation_json, {}) }, updatedAt: r.updated_at };
+  };
+  const putBusinessProfile = (ws, p) => {
+    q(
+      `INSERT INTO business_profiles (workspace_id, name, about, website, hours, timezone, contact_email, contact_phone, languages_json, tone, escalation_json, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+       ON CONFLICT(workspace_id) DO UPDATE SET name=excluded.name, about=excluded.about, website=excluded.website, hours=excluded.hours, timezone=excluded.timezone, contact_email=excluded.contact_email,
+         contact_phone=excluded.contact_phone, languages_json=excluded.languages_json, tone=excluded.tone, escalation_json=excluded.escalation_json, updated_at=excluded.updated_at`
+    ).run(need(ws), p.name, p.about, p.website, p.hours, p.timezone, p.contactEmail, p.contactPhone, JSON.stringify(p.languages), p.tone, JSON.stringify(p.escalation), now());
+    return getBusinessProfile(ws);
+  };
+  const toFaq = (r) => r && { id: r.id, question: r.question, answer: r.answer, language: r.language, tags: parse(r.tags_json, []), enabled: Boolean(r.enabled), source: r.source, createdAt: r.created_at, updatedAt: r.updated_at };
+  const createFaq = (ws, f) => {
+    const id = newId("faq");
+    const t = now();
+    q("INSERT INTO faqs (id, workspace_id, question, answer, language, tags_json, enabled, source, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)").run(id, need(ws), f.question, f.answer, f.language || "en", JSON.stringify(f.tags || []), f.enabled === false ? 0 : 1, f.source || "manual", t, t);
+    return getFaq(ws, id);
+  };
+  const getFaq = (ws, id) => toFaq(q("SELECT * FROM faqs WHERE workspace_id = ? AND id = ?").get(need(ws), String(id)));
+  const countFaqs = (ws, { enabledOnly = false } = {}) => q(`SELECT COUNT(*) AS n FROM faqs WHERE workspace_id = ? ${enabledOnly ? "AND enabled = 1" : ""}`).get(need(ws)).n;
+  const faqExists = (ws, question) => Boolean(q("SELECT 1 FROM faqs WHERE workspace_id = ? AND LOWER(question) = LOWER(?)").get(need(ws), String(question)));
+  const listFaqs = (ws, { q: text, language, enabled, limit, cursor } = {}) => {
+    const where = ["workspace_id = ?"];
+    const args = [need(ws)];
+    if (language) { where.push("language = ?"); args.push(language); }
+    if (enabled === "true" || enabled === "false") { where.push("enabled = ?"); args.push(enabled === "true" ? 1 : 0); }
+    if (cursor) { where.push("seq < ?"); args.push(Number(cursor) || 0); }
+    if (text) { where.push("(question LIKE ? ESCAPE '\\' OR answer LIKE ? ESCAPE '\\')"); args.push(like(text), like(text)); }
+    const lim = clampLimit(limit);
+    const rows = q(`SELECT * FROM faqs WHERE ${where.join(" AND ")} ORDER BY seq DESC LIMIT ?`).all(...args, lim + 1);
+    const pageRows = rows.slice(0, lim);
+    return { data: pageRows.map(toFaq), nextCursor: rows.length > lim ? String(pageRows[pageRows.length - 1].seq) : null };
+  };
+  const updateFaq = (ws, id, patch) => {
+    const cur = getFaq(ws, id);
+    if (!cur) return null;
+    const m = { ...cur, ...patch };
+    q("UPDATE faqs SET question = ?, answer = ?, language = ?, tags_json = ?, enabled = ?, updated_at = ? WHERE workspace_id = ? AND id = ?").run(m.question, m.answer, m.language, JSON.stringify(m.tags), m.enabled ? 1 : 0, now(), ws, id);
+    return getFaq(ws, id);
+  };
+  const deleteFaq = (ws, id) => q("DELETE FROM faqs WHERE workspace_id = ? AND id = ?").run(need(ws), String(id)).changes > 0;
+  const getOnboardingState = (ws) => {
+    const r = q("SELECT * FROM onboarding_state WHERE workspace_id = ?").get(need(ws));
+    return r && { logTestAt: r.log_test_at, logTestOk: r.log_test_ok === 1, logTestHasUserId: r.log_test_has_user_id === 1, testRanAt: r.test_ran_at, testOk: r.test_ok === 1 };
+  };
+  const upsertState = (ws, cols) => {
+    q("INSERT OR IGNORE INTO onboarding_state (workspace_id, updated_at) VALUES (?, ?)").run(need(ws), now());
+    for (const [k, v] of Object.entries(cols)) q(`UPDATE onboarding_state SET ${k} = ?, updated_at = ? WHERE workspace_id = ?`).run(v, now(), ws);
+  };
+  const recordLogTest = (ws, { ok, hasUserId }) => upsertState(ws, { log_test_at: now(), log_test_ok: ok ? 1 : 0, log_test_has_user_id: hasUserId ? 1 : 0 });
+  const recordCustomerTest = (ws, { ok }) => upsertState(ws, { test_ran_at: now(), test_ok: ok ? 1 : 0 });
+  const countKnowledgeDocs = (ws) => q("SELECT COUNT(*) AS n FROM knowledge_docs WHERE workspace_id = ?").get(need(ws)).n;
+  const hasVerifiedCustomerActivity = (ws) =>
+    Boolean(q("SELECT 1 FROM audit_events WHERE workspace_id = ? AND action = 'identity_token_minted' LIMIT 1").get(need(ws)) || q("SELECT 1 FROM conversations WHERE workspace_id = ? AND customer_id IS NOT NULL AND is_test = 0 LIMIT 1").get(ws));
+
+  // ── channels (ChatFlow) ───────────────────────────────────────────────
+  const toChannel = (r) => r && { id: r.id, kind: r.kind, label: r.label, externalId: r.external_id, status: r.status, lastSeenAt: r.last_seen_at, keyPrefix: r.key_prefix, createdAt: r.created_at };
+  const createChannel = (ws, { kind, label, externalId, keyHash, keyPrefix }) => {
+    const id = newId("ch");
+    q("INSERT INTO channels (id, workspace_id, kind, label, external_id, key_hash, key_prefix, created_at) VALUES (?,?,?,?,?,?,?,?)").run(id, need(ws), kind, String(label).slice(0, 60), String(externalId).slice(0, 128), keyHash, keyPrefix, now());
+    return getChannel(ws, id);
+  };
+  const getChannel = (ws, id) => toChannel(q("SELECT * FROM channels WHERE workspace_id = ? AND id = ?").get(need(ws), String(id)));
+  const findChannelByExternalId = (kind, externalId) => q("SELECT id FROM channels WHERE kind = ? AND external_id = ?").get(kind, String(externalId)) || null;
+  const listChannels = (ws) => q("SELECT * FROM channels WHERE workspace_id = ? ORDER BY created_at").all(need(ws)).map(toChannel);
+  /** Credential lookup: the relay key is the secret. Returns the channel and its workspace. */
+  const getChannelByKeyHash = (h) => {
+    const r = q("SELECT * FROM channels WHERE key_hash = ?").get(String(h));
+    return r ? { ...toChannel(r), workspaceId: r.workspace_id } : null;
+  };
+  const rotateChannelKey = (ws, id, { keyHash, keyPrefix }) =>
+    q("UPDATE channels SET key_hash = ?, key_prefix = ?, status = 'pending', last_seen_at = NULL WHERE workspace_id = ? AND id = ?").run(keyHash, keyPrefix, need(ws), String(id)).changes > 0;
+  const deleteChannel = (ws, id) => q("DELETE FROM channels WHERE workspace_id = ? AND id = ?").run(need(ws), String(id)).changes > 0;
+  const touchChannel = (ws, id) => q("UPDATE channels SET status = 'connected', last_seen_at = ? WHERE workspace_id = ? AND id = ?").run(now(), need(ws), String(id));
+  const getChannelConversation = (ws, channelId, externalConversationId) => {
+    const r = q("SELECT * FROM channel_conversations WHERE workspace_id = ? AND channel_id = ? AND external_conversation_id = ?").get(need(ws), String(channelId), String(externalConversationId));
+    return r && { channelId: r.channel_id, externalConversationId: r.external_conversation_id, conversationId: r.conversation_id, externalVisitorId: r.external_visitor_id, customerId: r.customer_id };
+  };
+  /** Maps (channel, their conversation id) to ours; remapping replaces the target (used when a different verified customer appears). */
+  const linkChannelConversation = (ws, { channelId, externalConversationId, conversationId, externalVisitorId = null, customerId = null }) =>
+    q(
+      `INSERT INTO channel_conversations (workspace_id, channel_id, external_conversation_id, conversation_id, external_visitor_id, customer_id, created_at) VALUES (?,?,?,?,?,?,?)
+       ON CONFLICT(channel_id, external_conversation_id) DO UPDATE SET conversation_id = excluded.conversation_id, external_visitor_id = excluded.external_visitor_id, customer_id = excluded.customer_id`
+    ).run(need(ws), String(channelId), String(externalConversationId), conversationId, externalVisitorId, customerId, now());
+
   // ── analytics ─────────────────────────────────────────────────────────
   const range = (from, to) => ({ f: from || "0000", t: to || "9999" });
   const analyticsSummary = (ws, { from, to } = {}) => {
@@ -387,16 +486,16 @@ const createRepo = (db) => {
       `SELECT COUNT(*) AS conversations,
               SUM(CASE WHEN handed_off = 0 AND status != 'needs_human' AND status != 'human' THEN 1 ELSE 0 END) AS resolvedByAI,
               SUM(handed_off) AS handedOff, AVG(first_response_ms) AS avgFirstResponseMs
-       FROM conversations WHERE workspace_id = ? AND created_at >= ? AND created_at <= ?`
+       FROM conversations WHERE workspace_id = ? AND is_test = 0 AND created_at >= ? AND created_at <= ?`
     ).get(ws, f, t);
-    const languages = q("SELECT language AS code, COUNT(*) AS count FROM conversations WHERE workspace_id = ? AND created_at >= ? AND created_at <= ? GROUP BY language ORDER BY count DESC").all(ws, f, t);
-    const intents = q("SELECT intent, COUNT(*) AS count FROM messages WHERE workspace_id = ? AND role = 'customer' AND intent IS NOT NULL AND created_at >= ? AND created_at <= ? GROUP BY intent ORDER BY count DESC").all(ws, f, t);
-    const rv = q("SELECT COUNT(*) AS n, SUM(review_recommended) AS flagged FROM messages WHERE workspace_id = ? AND role = 'ai' AND language != 'en' AND created_at >= ? AND created_at <= ?").get(ws, f, t);
+    const languages = q("SELECT language AS code, COUNT(*) AS count FROM conversations WHERE workspace_id = ? AND is_test = 0 AND created_at >= ? AND created_at <= ? GROUP BY language ORDER BY count DESC").all(ws, f, t);
+    const intents = q("SELECT intent, COUNT(*) AS count FROM messages WHERE workspace_id = ? AND role = 'customer' AND intent IS NOT NULL AND created_at >= ? AND created_at <= ? AND conversation_id NOT IN (SELECT id FROM conversations WHERE workspace_id = ? AND is_test = 1) GROUP BY intent ORDER BY count DESC").all(ws, f, t, ws);
+    const rv = q("SELECT COUNT(*) AS n, SUM(review_recommended) AS flagged FROM messages WHERE workspace_id = ? AND role = 'ai' AND language != 'en' AND created_at >= ? AND created_at <= ? AND conversation_id NOT IN (SELECT id FROM conversations WHERE workspace_id = ? AND is_test = 1)").get(ws, f, t, ws);
     const causes = q(
       `SELECT fingerprint, MAX(json_extract(root_cause_json, '$.summary')) AS summary, COUNT(*) AS count, MAX(created_at) AS lastSeen
-       FROM tickets WHERE workspace_id = ? AND fingerprint IS NOT NULL AND created_at >= ? AND created_at <= ? GROUP BY fingerprint ORDER BY count DESC, lastSeen DESC LIMIT 5`
+       FROM tickets WHERE workspace_id = ? AND is_test = 0 AND fingerprint IS NOT NULL AND created_at >= ? AND created_at <= ? GROUP BY fingerprint ORDER BY count DESC, lastSeen DESC LIMIT 5`
     ).all(ws, f, t);
-    const needsHuman = q("SELECT COUNT(*) AS n FROM tickets WHERE workspace_id = ? AND status = 'needs_human'").get(ws).n;
+    const needsHuman = q("SELECT COUNT(*) AS n FROM tickets WHERE workspace_id = ? AND is_test = 0 AND status = 'needs_human'").get(ws).n;
     const total = c.conversations || 0;
     return {
       conversations: total,
@@ -416,7 +515,7 @@ const createRepo = (db) => {
     const { f, t } = range(from, to);
     const len = interval === "hour" ? 13 : 10; // ISO prefix length
     const table = metric === "errors" ? "tickets" : "conversations";
-    const extra = metric === "handoffs" ? "AND handed_off = 1" : "";
+    const extra = `AND is_test = 0 ${metric === "handoffs" ? "AND handed_off = 1" : ""}`;
     return q(`SELECT SUBSTR(created_at, 1, ${len}) AS bucket, COUNT(*) AS count FROM ${table} WHERE workspace_id = ? AND created_at >= ? AND created_at <= ? ${extra} GROUP BY bucket ORDER BY bucket`).all(ws, f, t);
   };
 
@@ -455,11 +554,13 @@ const createRepo = (db) => {
     createSession, getSessionByHash, deleteSessionByHash,
     createApiKey, listApiKeys, getApiKeyByHash, touchApiKey, revokeApiKey,
     getLogSource, putLogSource,
-    createConversation, getConversation, updateConversation, listConversations, addMessage, getMessage, listMessages, updateMessage, listPendingMessages,
+    createConversation, getConversation, bindConversationCustomer, updateConversation, listConversations, addMessage, getMessage, listMessages, updateMessage, listPendingMessages,
     createTicket, getTicket, listTickets, updateTicket, addNote, listNotes,
     addKnowledge, listKnowledge, getKnowledge, updateKnowledge, reindexKnowledge, deleteKnowledge, retrieve,
     addAudit, listAudit,
     createWebhook, getWebhook, getWebhookSecretEnc, listWebhooks, listWebhooksForEvent, deleteWebhook, addDelivery, updateDelivery, listDeliveries,
+    getBusinessProfile, putBusinessProfile, createFaq, getFaq, countFaqs, faqExists, listFaqs, updateFaq, deleteFaq, getOnboardingState, recordLogTest, recordCustomerTest, countKnowledgeDocs, hasVerifiedCustomerActivity,
+    createChannel, getChannel, findChannelByExternalId, listChannels, getChannelByKeyHash, rotateChannelKey, deleteChannel, touchChannel, getChannelConversation, linkChannelConversation,
     analyticsSummary, analyticsTimeseries, eraseCustomer, purgeOlderThan,
   };
 };

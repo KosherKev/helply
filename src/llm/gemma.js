@@ -46,6 +46,9 @@ const createGemma = ({
   fetchImpl = fetch,
   timeoutMs = 30000,
   temperature = 0.2,
+  // Gemma 4 on the Gemini API is a thinking model: reasoning tokens count against maxOutputTokens, so a small budget can
+  // end with no visible answer. Verified live 2026-10-28: only thinkingLevel "minimal" is accepted (budget 0 and "low" are 400s).
+  thinkingLevel = "minimal",
 } = {}) => {
   const endpoint = `${baseUrl}/v1beta/models/${encodeURIComponent(model)}:generateContent`;
 
@@ -80,24 +83,32 @@ const createGemma = ({
 
   /** @returns {Promise<{text:string, json:object|null}>} */
   const generate = async ({ system, user, json = false, maxOutputTokens = 700 }) => {
-    const generationConfig = { temperature, maxOutputTokens, ...(json ? { responseMimeType: "application/json" } : {}) };
+    const base = { temperature, maxOutputTokens };
+    const full = {
+      contents: [{ role: "user", parts: [{ text: user }] }],
+      generationConfig: { ...base, ...(json ? { responseMimeType: "application/json" } : {}), ...(thinkingLevel ? { thinkingConfig: { thinkingLevel } } : {}) },
+      ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}),
+    };
+    // Some deployments reject thinkingConfig, systemInstruction or JSON mode with a 400. Step down once per rejection.
+    const variants = [
+      full,
+      { ...full, generationConfig: { ...full.generationConfig, thinkingConfig: undefined } },
+      { contents: [{ role: "user", parts: [{ text: `${system ? `${system}\n\n` : ""}${user}` }] }], generationConfig: base },
+    ].filter((v, i, a) => i === 0 || JSON.stringify(v) !== JSON.stringify(a[i - 1]));
     let data;
-    try {
-      data = await call({
-        contents: [{ role: "user", parts: [{ text: user }] }],
-        generationConfig,
-        ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}),
-      });
-    } catch (err) {
-      // Some deployments reject systemInstruction or JSON mode with a 400. Retry once, inline.
-      if (err.status !== 400) throw err;
-      data = await call({
-        contents: [{ role: "user", parts: [{ text: `${system ? `${system}\n\n` : ""}${user}` }] }],
-        generationConfig: { temperature, maxOutputTokens },
-      });
+    for (let i = 0; i < variants.length; i += 1) {
+      try {
+        data = await call(variants[i]);
+        break;
+      } catch (err) {
+        if (err.status !== 400 || i === variants.length - 1) throw err;
+      }
     }
     const text = textOf(data);
-    if (!text) throw new LlmError("Empty model response");
+    if (!text) {
+      const c = data?.candidates?.[0];
+      throw new LlmError(c?.finishReason === "MAX_TOKENS" ? "Model spent its whole output budget on reasoning (raise maxOutputTokens or set GEMMA_THINKING_LEVEL=minimal)" : "Empty model response");
+    }
     return { text, json: json ? extractJson(text) : null };
   };
 
