@@ -107,7 +107,13 @@ const getJson = async (url, headers) => {
       if (b.length < 1000) throw new Error(`suspiciously small audio (${b.length} bytes)`);
       return `${b.length} bytes`;
     });
-    await step("translate en -> pcm (Pidgin)", async () => safe(await k.translate("Good morning", "en-kpo")).slice(0, 80));
+    // Verified 2026-10-28: Khaya does not support Pidgin. Helply routes Pidgin to the model; this documents that it is still true.
+    try {
+      await k.translate("Good morning", "en-kpo");
+      console.log("WARN  Khaya now accepts en-kpo (Pidgin). Add pcm back to KHAYA in src/language/index.js and re-test.");
+    } catch (e) {
+      console.log(/UNSUPPORTED_LANGUAGE_PAIR/.test(String(e.message)) ? "PASS  Pidgin is unsupported by Khaya, as expected (routed to the model)" : `FAIL  Pidgin probe failed unexpectedly: ${safe(String(e.message)).slice(0, 120)}`);
+    }
   }
 
   section(`Log service (${cls.baseUrl ? new URL(cls.baseUrl).host : "not configured"}, service "${cls.service}")`);
