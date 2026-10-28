@@ -141,6 +141,10 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 - **Scroll lag fixes:** flake animation moved to the vertex shader (was a 7,000-flake CPU loop re-uploading ~450 KB per frame); the world renders on GSAP's ticker after Lenis; resolution cap 1.5 and adaptive step-down; no animated CSS blur on headlines; no backdrop-filter over the canvas; focus list reads then writes layout; text scrub follows Lenis directly (no extra 0.6 s lag); all shape buffers uploaded before the gate opens.
 >>>>>>> df95992d45c25bb855b38bc79a6fab63ab2e6baf
 
+### 2026-10-28 (frontend on Vercel)
+- **Deployed `web/` to Vercel with the CLI** (project `helply-web`, account kosherkev): **https://helply-web-bice.vercel.app**. `web/vercel.json` proxies `/v1/*` and `/health` to the Render API (`https://helply-pjww.onrender.com`) so the browser sees one origin (no CORS change on Render), with an SPA fallback and security/cache headers. Verified: `/`, `/demo`, `/app/login` 200; proxied demo token and a knowledge-base answer work; `/demo` loads with no console errors and shows model, Khaya, logs and voice connected.
+- **Known gaps on the live pair:** Render still cannot reach a log service (Ama's account question fails closed); the dashboard's live updates (SSE) go through Vercel's proxy and may be cut off, pages still work; changing the Render URL means editing `web/vercel.json` and redeploying (`cd web && vercel deploy --prod`).
+
 ## Known Limitations
 
 1. ~~In-memory store.~~ Resolved: SQLite (`HELPLY_DB_PATH`, default `.data/helply.db` for `npm start`). Tests use `:memory:`.
