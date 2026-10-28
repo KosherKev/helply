@@ -316,6 +316,7 @@ const createRepo = (db) => {
     return q("DELETE FROM knowledge_docs WHERE workspace_id = ? AND id = ?").run(ws, String(id)).changes > 0;
   };
   const retrieve = (ws, query, k = 3) => {
+    need(ws);
     const qs = new Set(tokenize(query));
     if (!qs.size) return [];
     const rows = q("SELECT d.title AS title, c.text AS text FROM knowledge_chunks c JOIN knowledge_docs d ON d.id = c.doc_id AND d.workspace_id = c.workspace_id WHERE c.workspace_id = ?").all(need(ws));
