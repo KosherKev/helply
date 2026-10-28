@@ -1,0 +1,18 @@
+{
+  "name": "helply",
+  "version": "0.1.0",
+  "description": "Open-source customer support that understands Ghanaian languages and reads your logs to explain what went wrong.",
+  "license": "MIT",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test",
+    "seed": "node scripts/seed-logs.js",
+    "check:khaya": "node scripts/check-khaya.js"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
