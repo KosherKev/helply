@@ -227,5 +227,5 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 - **Reconciliation:** the merge `b483d54` (main into landing-page, made by the user) replaced this file with main's copy. The landing-page changelog entries for rounds 3 to 5, the loader entry and KL-29's original wording survive in `git show 65ba980:PROGRESS.md`; the round 5 decisions and KL-26 to 29 are still present above. Not rewritten here.
 - **Verified:** `npx tsc --noEmit` and `npm run build` in `site/` clean. No API, `web/` or `.env` change (`git status` shows only `site/` and this file).
 - **Not done:** a live chat round trip (needs `CORS_ORIGIN` and `GEMMA_API_KEY`, KL-30); no servers started, per the user's earlier "stop".
-- **Commit:** see the next entry.
+- **Commit:** `8a13859`.
 
