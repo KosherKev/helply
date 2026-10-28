@@ -91,6 +91,10 @@ Single source of truth for project state. Read top to bottom at the start of eve
 - **Decision: DigitalOcean Droplet + Docker Compose + Caddy, not App Platform**, because SQLite needs a persistent disk. Same-origin proxy (`/v1`, `/health`) so the site needs no CORS. Files: `Dockerfile`, `deploy/Dockerfile.web`, `deploy/Caddyfile`, `docker-compose.yml`, `deploy/production.env.example`, `deploy/docker-compose.logs.yml` (optional log service + MongoDB), `deploy/backup.sh`, `docs/DEPLOY.md`.
 - **Validated:** `docker compose config` parses; the API boots in production mode (`DEMO_MODE=false`) and registers a workspace. **Not validated:** the Docker images were never built (no Docker daemon was running here) and Caddy was never started; nothing was deployed (no DigitalOcean access from this session).
 
+### 2026-10-28 (Render deployment check)
+- **Live at `https://helply-pjww.onrender.com` (user-deployed, API only).** Probe: `/health` and `/v1/config` fine (demo mode, model, Khaya, identity on); `/`, `/demo`, `/app` 404 because only the API was deployed; the demo Ama message failed closed with `ClsError` (log service unreachable from Render, `CLS_BASE_URL` not a public URL or key mismatch); CORS allows only `http://localhost:5173`; `/v1/config` exposes the demo login password (demo mode).
+- **Fix built:** the API now serves `web/dist` from the same origin (`WEB_DIST`, defaulting to `web/dist` when present), API/health paths unaffected; the web app defaults to same-origin API URLs off localhost. +1 test (122/122). Needs a Render redeploy with the new build command (see `docs/DEPLOY.md` appendix).
+
 ## Known Limitations
 
 1. ~~In-memory store.~~ Resolved: SQLite (`HELPLY_DB_PATH`, default `.data/helply.db` for `npm start`). Tests use `:memory:`.

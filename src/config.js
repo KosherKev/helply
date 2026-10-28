@@ -8,6 +8,7 @@ const load = (env = process.env) => ({
   port: num(env.PORT, 8787),
   demoMode: env.DEMO_MODE === "true",
   corsOrigin: env.CORS_ORIGIN || "*",
+  webDist: env.WEB_DIST || "", // folder with the built web app; the entrypoint defaults it to web/dist when that exists
   appUrl: trimSlash(env.APP_URL) || "http://localhost:5173",
   dbPath: env.HELPLY_DB_PATH || "", // empty = in-memory (tests); the server entrypoint defaults to .data/helply.db
   encryptionKey: env.HELPLY_ENCRYPTION_KEY || "",

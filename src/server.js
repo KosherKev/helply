@@ -137,6 +137,14 @@ const buildApp = (config = load(), overrides = {}) => {
   require("./routes/quality")(ctx);
   require("./routes/onboarding")(ctx);
 
+  // Optional: serve the built web app from the same origin (one service, no CORS). API paths always win and stay JSON.
+  if (config.webDist && require("node:fs").existsSync(require("node:path").join(config.webDist, "index.html"))) {
+    const path = require("node:path");
+    const dist = path.resolve(config.webDist);
+    app.use(express.static(dist, { index: false, setHeaders: (res, file) => res.set("Cache-Control", /[\\/](assets|brand)[\\/]/.test(file) ? "public, max-age=31536000, immutable" : "no-cache") }));
+    app.get(/^\/(?!v1\/|health$)/, (req, res, next) => (req.accepts("html") ? (res.set("Cache-Control", "no-cache"), res.sendFile(path.join(dist, "index.html"))) : next()));
+  }
+
   app.use((req, res, next) => next(new HttpError(404, "not_found", "Not found")));
   // eslint-disable-next-line no-unused-vars
   app.use((err, req, res, next) => {
@@ -178,6 +186,7 @@ if (require.main === module) {
   console.log(env.found ? `[helply] loaded ${env.loaded.length} variable(s) from .env` : "[helply] no .env file found; using the process environment");
   const config = load();
   if (!config.dbPath) config.dbPath = ".data/helply.db";
+  if (!config.webDist && require("node:fs").existsSync(require("node:path").join(__dirname, "..", "web", "dist", "index.html"))) config.webDist = require("node:path").join(__dirname, "..", "web", "dist");
   if (!config.demoMode && !config.encryptionKey) console.warn("[helply] HELPLY_ENCRYPTION_KEY is not set: stored secrets will not survive a restart.");
   const app = buildApp(config);
   app.locals.ready.then(() => {

@@ -1,5 +1,7 @@
 // One wrapper for every call: base URL from env, typed errors, never logs tokens.
-export const API_URL: string = (import.meta.env.VITE_API_URL ?? 'http://localhost:8787').replace(/\/+$/, '')
+// Same origin when the API serves this app (the default in production); localhost:8787 only while developing on localhost.
+const devDefault = typeof location !== 'undefined' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1' ? '' : 'http://localhost:8787'
+export const API_URL: string = (import.meta.env.VITE_API_URL ?? devDefault).replace(/\/+$/, '')
 
 export class ApiError extends Error {
   status: number

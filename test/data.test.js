@@ -211,3 +211,26 @@ test("SSE: a dashboard only receives its own workspace's events", async () => {
     assert.doesNotMatch(await readSome(rb), /message\.customer/);
   } finally { await s.close(); }
 });
+
+test("optional same-origin web app: serves files and the SPA fallback, never shadows the API", async () => {
+  const fs = require("node:fs");
+  const os = require("node:os");
+  const path = require("node:path");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "helply-web-"));
+  fs.mkdirSync(path.join(dir, "assets"));
+  fs.writeFileSync(path.join(dir, "index.html"), "<!doctype html><title>app</title>");
+  fs.writeFileSync(path.join(dir, "assets", "a.js"), "console.log(1)");
+  const s = await boot({ env: { WEB_DIST: dir } });
+  try {
+    const html = (p) => fetch(`${s.base}${p}`, { headers: { Accept: "text/html" } });
+    for (const p of ["/", "/demo", "/app/tickets/T-1"]) { const r = await html(p); assert.equal(r.status, 200, p); assert.match(await r.text(), /<title>app/); }
+    const asset = await html("/assets/a.js");
+    assert.equal(asset.headers.get("cache-control"), "public, max-age=31536000, immutable");
+    assert.equal((await html("/")).headers.get("cache-control"), "no-cache");
+    assert.equal((await html("/health")).headers.get("content-type").startsWith("application/json"), true);
+    const nope = await html("/v1/nope");
+    assert.equal(nope.status, 404);
+    assert.equal((await nope.json()).error.code, "not_found", "unknown API paths stay JSON 404s");
+    assert.equal((await fetch(`${s.base}/missing.json`, { headers: { Accept: "application/json" } })).status, 404);
+  } finally { await s.close(); fs.rmSync(dir, { recursive: true, force: true }); }
+});

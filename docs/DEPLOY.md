@@ -86,3 +86,12 @@ Enable DigitalOcean Droplet backups as a second layer. Automatic OS security upd
 
 ## 8. Known limits of this setup
 Single Droplet, single API process (rate limits and the event stream live in memory, so do not run two API replicas); SQLite is the database (fine for a pilot; plan a move to Postgres before many tenants); no CSP header yet; Khaya and Gemma are external services (latency 10 to 18 s per answer today, see `PROGRESS.md`); the ChatFlow link needs ChatFlow's side wired (`docs/CHATFLOW_INTEGRATION.md`).
+
+## Appendix: Render (the quick path)
+One Render **Web Service** can serve both the API and the website: the API serves `web/dist` itself when it exists.
+- **Build command:** `npm install && npm --prefix web install && npm --prefix web run build`
+- **Start command:** `npm start`; add env `NODE_VERSION=22.12.0` (built-in SQLite needs Node 22.5+).
+- **Env:** the same variables as `deploy/production.env.example` (no `SITE_ADDRESS`). `CORS_ORIGIN` is not needed (same origin). `APP_URL=https://<your>.onrender.com`.
+- **Logs:** `CLS_BASE_URL` must be the PUBLIC https URL of your log service (not localhost), `CLS_API_KEY` a `logs:read` key that exists in THAT service's database, `CLS_SERVICE=demo-shop-api`; seed the demo logs there with a `logs:write` key (`npm run seed`). Use a separate database for the demo, not one holding real users' logs.
+- **Data:** the disk is ephemeral unless you attach a Render Disk mounted at `/data` and set `HELPLY_DB_PATH=/data/helply.db`. Without it, every deploy or restart erases workspaces (demo mode recreates the demo account and knowledge).
+- **Free instances sleep** after ~15 minutes idle; the first request takes about a minute. Wake it before presenting.
