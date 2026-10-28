@@ -1,5 +1,5 @@
 import { ArrowUpRight, GraduationCap, ShoppingBag, Smartphone, Truck, Zap, type LucideIcon } from 'lucide-react'
-import { BRAND, DEMO_URL, GITHUB_URL } from '@/lib/brand'
+import { BRAND, DASHBOARD_URL, DEMO_URL, GITHUB_URL } from '@/lib/brand'
 import { GitHubIcon, Pill, Tag, Turn } from './ui'
 
 /** Paragraph whose words light up while it scrolls. Plain text without JS. */
@@ -214,6 +214,7 @@ export function Contact() {
             <ul className="mono mt-3">
               {pages.map(([h, l], i) => <li key={h}><a className="inline-block py-1.5 hover:text-blue" href={h}>({String(i + 1).padStart(2, '0')}) {l}</a></li>)}
               <li><a className="inline-block py-1.5 hover:text-blue" href={DEMO_URL}>(06) Live demo</a></li>
+              <li><a className="inline-block py-1.5 hover:text-blue" href={DASHBOARD_URL}>(07) Team sign in</a></li>
             </ul>
           </nav>
           <div>

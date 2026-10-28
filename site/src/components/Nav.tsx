@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { Settings, X } from 'lucide-react'
-import { BRAND, DEMO_URL, GITHUB_URL } from '@/lib/brand'
+import { BRAND, DASHBOARD_URL, DEMO_URL, GITHUB_URL } from '@/lib/brand'
 import { setMotion, setQuality, useMotion, useQuality } from '@/lib/motion'
 import { Pill } from './ui'
 
@@ -10,7 +10,7 @@ const links = [
   { href: '#trust', label: 'Trust' },
   { href: '#open-source', label: 'Open source' },
 ]
-const menu = [{ href: '#top', label: 'Home' }, { href: '#languages', label: 'Languages' }, ...links, { href: DEMO_URL, label: 'Live demo' }]
+const menu = [{ href: '#top', label: 'Home' }, { href: '#languages', label: 'Languages' }, ...links, { href: DEMO_URL, label: 'Live demo' }, { href: DASHBOARD_URL, label: 'Sign in' }]
 
 function Switch({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
@@ -80,6 +80,7 @@ export default function Nav() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <a className="mono hidden px-2 py-2 hover:text-blue sm:inline-block" href={DASHBOARD_URL}>Sign in</a>
           <span className="hidden sm:inline-flex"><Pill href={DEMO_URL} size="sm">Try the live demo</Pill></span>
           <button
             ref={menuBtn}
