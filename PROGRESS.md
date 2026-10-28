@@ -145,7 +145,7 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 17. Twi/Ga/Ewe/Pidgin sample messages for the demo have not been written or reviewed by a native speaker.
 18. ~~`npm install` never run at the root (KL-8)~~: resolved 2026-10-28, `npm ci` and 73/73.
 19. ~~**Two homepages exist:** `site/` and `web/src/pages/Home.tsx`; routing not decided.~~ Resolved: `site/deploy` serves `/` from `site/` and `/demo`, `/app/*` from `web/`. `web/`'s Home is built but unreachable at `/` in production.
-20. `site/` `NEXT_PUBLIC_GITHUB_URL` defaults to `https://github.com/kevinafenyo/helply`, which is **unconfirmed**. The "Next page: Docs" link goes to `${GITHUB_URL}#quickstart` because there is no `/docs` page.
+20. ~~`site/` `NEXT_PUBLIC_GITHUB_URL` defaults to `https://github.com/kevinafenyo/helply`, which is **unconfirmed**. The "Next page: Docs" link goes to `${GITHUB_URL}#quickstart` because there is no `/docs` page.~~ Resolved 2026-10-28: that account does not exist (404, reported by the user). Both `site/src/lib/brand.ts` and `web/src/brand.ts` now default to `https://github.com/KosherKev/helply` (the git remote, public); the security-model links use GitHub's real anchor `#security-model-the-part-to-read-twice`.
 21. The AI orb sends `/demo?q=…`; `web/`'s Demo page may ignore `q` (not touched, other owner).
 22. `site/` has no sitemap, no dark/light toggle (it is light with navy scenes by design), and no automated tests beyond `tsc`/build. Lighthouse 93–94 assumes compression is enabled in production.
 23. ~~No photography in the gallery.~~ Resolved: Pexels photos. Photographers are not individually credited (Pexels does not require it; the pages could not be fetched to read names).
@@ -169,7 +169,7 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 8. Get a native-speaker Twi sample message (KL-17). Rehearse `docs/DEMO_SCRIPT.md`.
 9. Deploy (API + static site) on DigitalOcean; record the demo; Devpost write-up. Feature freeze 18:00.
 10. ~~Landing page~~ (built in `site/`, branch `landing-page`). Review and merge are the user's call; never merged by Claude.
-11. ~~Decide `/` routing (KL-19).~~ Confirm `GITHUB_URL` (KL-20); have `/demo` read `?q=` (KL-21). Set `CORS_ORIGIN` and `GEMMA_API_KEY`, then try the orb end to end (KL-30).
+11. ~~Decide `/` routing (KL-19).~~ ~~Confirm `GITHUB_URL` (KL-20)~~; have `/demo` read `?q=` (KL-21). Set `CORS_ORIGIN` and `GEMMA_API_KEY`, then try the orb end to end (KL-30).
 12. Enable gzip/brotli on the static host and re-run Lighthouse mobile on the deployed URL.
 
 ## Changelog
@@ -228,4 +228,9 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 - **Verified:** `npx tsc --noEmit` and `npm run build` in `site/` clean. No API, `web/` or `.env` change (`git status` shows only `site/` and this file).
 - **Not done:** a live chat round trip (needs `CORS_ORIGIN` and `GEMMA_API_KEY`, KL-30); no servers started, per the user's earlier "stop".
 - **Commit:** `8a13859`.
+
+### 2026-10-28 (orb verified, GitHub links fixed)
+- **Verified the orb:** against the real API (with `CORS_ORIGIN` set on the command line) config, CORS and demo token work and the message call returns `llm_not_configured` (no `GEMMA_API_KEY`); against `npm run dev:mock`, headless Chrome on the user's `next dev` page signed in as Ama Mensah and completed two turns in one conversation with no console errors.
+- **Fixed (user reports):** GitHub links 404'd (KL-20) and the security-model anchor did not match GitHub's. `localhost:5173/demo` 404'd because the web dev server was not running; started it, `/demo` returns 200.
+- **Left running for the user:** API on 8787 (`CORS_ORIGIN='*' npm run dev`, local only) and web on 5173. The `.env` file was not edited.
 
