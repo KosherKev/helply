@@ -173,7 +173,7 @@ export function Trust() {
           </ul>
         </div>
       ))}
-      <div className="mt-12 flex justify-center"><Pill href={`${GITHUB_URL}#security-model`} external>Read the security model</Pill></div>
+      <div className="mt-12 flex justify-center"><Pill href={`${GITHUB_URL}#security-model-the-part-to-read-twice`} external>Read the security model</Pill></div>
       {/* Follows the cursor over the table, like Emotion's trophies. */}
       <img data-follower aria-hidden="true" alt="" src="/brand/helply-mark-color.svg" width={120} height={120} className="pointer-events-none fixed left-0 top-0 z-30 hidden w-[120px] opacity-0 lg:block" />
     </section>
@@ -232,7 +232,7 @@ export function Contact() {
       <div className="mt-24 flex flex-wrap items-center justify-between gap-4 border-t border-navy/20 py-5 text-[12px] text-mute">
         <span>© 2026 {BRAND} contributors. MIT license. Photos: <a className="inline-block py-1 underline underline-offset-2 hover:text-blue" href="https://www.pexels.com" target="_blank" rel="noopener noreferrer">Pexels</a>.</span>
         <span className="mono flex items-center gap-1 text-navy">Keep scrolling <Turn className="h-3.5 w-3.5" /></span>
-        <a className="hover:text-blue" href={`${GITHUB_URL}#security-model`}>Security model</a>
+        <a className="hover:text-blue" href={`${GITHUB_URL}#security-model-the-part-to-read-twice`}>Security model</a>
       </div>
     </footer>
   )
