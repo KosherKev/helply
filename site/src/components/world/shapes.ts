@@ -106,6 +106,48 @@ export async function markShape(n: number, url: string): Promise<ShapeData> {
   return { pos, col }
 }
 
+/**
+ * The product name as a slab of flakes, for the footer: rasterised in the brand face (Plus Jakarta
+ * Sans 800) and sampled like the mark. `width` is the word's width in world units.
+ */
+export function wordShape(n: number, text: string, width: number): ShapeData {
+  const W = 900, H = 260
+  const c = document.createElement('canvas')
+  c.width = W
+  c.height = H
+  const ctx = c.getContext('2d', { willReadFrequently: true })!
+  ctx.font = '800 200px "Plus Jakarta Sans", system-ui, sans-serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillStyle = '#fff'
+  ctx.fillText(text, W / 2, H / 2, W - 20)
+  const data = ctx.getImageData(0, 0, W, H).data
+  const on: number[] = []
+  let minX = W, maxX = 0
+  for (let i = 0; i < W * H; i++) {
+    if (data[i * 4 + 3] < 160) continue
+    on.push(i)
+    const x = i % W
+    if (x < minX) minX = x
+    if (x > maxX) maxX = x
+  }
+  const r = rng(23)
+  const pos = new Float32Array(n * 3)
+  const col = new Float32Array(n * 3)
+  const scale = width / Math.max(1, maxX - minX)
+  const cx = (minX + maxX) / 2
+  for (let i = 0; i < n; i++) {
+    const p = on[Math.floor(r() * on.length)] ?? 0
+    pos[i * 3] = ((p % W) - cx) * scale + (r() - 0.5) * 0.04
+    pos[i * 3 + 1] = -(Math.floor(p / W) - H / 2) * scale + (r() - 0.5) * 0.04
+    pos[i * 3 + 2] = (r() - 0.5) * 0.25
+    // Mostly white and Sky Blue so the word stands out from the blue room.
+    const x = r()
+    col.set(x < 0.55 ? PALETTE.white : x < 0.88 ? PALETTE.sky : PALETTE.slate, i * 3)
+  }
+  return { pos, col }
+}
+
 /** A plump 3D chat bubble with a tail and three typing dots. */
 export function bubbleShape(n: number): ShapeData {
   const r = rng(11)

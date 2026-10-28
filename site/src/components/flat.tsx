@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowUpRight, GraduationCap, ShoppingBag, Smartphone, Truck, Zap, type LucideIcon } from 'lucide-react'
+import { ArrowUpRight, GraduationCap, ShoppingBag, Smartphone, Truck, Zap, type LucideIcon } from 'lucide-react'
 import { BRAND, DEMO_URL, GITHUB_URL } from '@/lib/brand'
 import { GitHubIcon, Pill, Tag, Turn } from './ui'
 
@@ -59,28 +59,30 @@ export function WhatItDoes() {
 
 /* ------------------------------------------------------------ who it's for (gallery) */
 
-type UseCase = { icon: LucideIcon; title: string; tags: string; question: string; log: string; place: string; ratio: string; photo: string; alt: string; sizes: string }
+type UseCase = { icon: LucideIcon; title: string; tags: string; question: string; found: string; place: string; ratio: string; photo: string; alt: string; sizes: string }
 
 // Photos from Pexels (free to use), resized to WebP and served from /images (no third-party requests).
 const useCases: UseCase[] = [
-  { icon: Smartphone, title: 'Mobile money', tags: 'Transfers / callbacks', question: 'I sent money but the receiver says nothing arrived.', log: 'POST /transfers 202 PENDING_CALLBACK', place: 'lg:col-[1/span_3]', ratio: 'aspect-[4/5]', photo: 'mobile-money', alt: 'A man in a striped shirt using his phone', sizes: '(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw' },
-  { icon: ShoppingBag, title: 'E-commerce', tags: 'Payments / webhooks / orders', question: 'I paid with MoMo but my order still says awaiting payment.', log: 'POST /webhooks/momo 500 ORDER_UPDATE_FAILED', place: 'lg:col-[7/span_2] lg:mt-[13.4375rem]', ratio: 'aspect-[4/5] lg:aspect-[16/18]', photo: 'e-commerce', alt: 'A smiling woman holding a bank card', sizes: '(min-width: 1024px) 17vw, (min-width: 640px) 33vw, 50vw' },
-  { icon: Truck, title: 'Delivery', tags: 'Orders / rider events', question: 'The app says delivered but my parcel never came.', log: 'PATCH /orders/ord_9 200 status=delivered', place: 'lg:col-[10/-1]', ratio: 'aspect-[4/5]', photo: 'delivery', alt: 'A motorcycle rider carrying a delivery box through a Nairobi street', sizes: '(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw' },
-  { icon: Zap, title: 'Utilities', tags: 'Purchases / tokens', question: 'I bought prepaid units but no token came.', log: 'POST /tokens 504 VENDOR_TIMEOUT', place: 'lg:col-[4/span_2]', ratio: 'aspect-[4/5] lg:aspect-[16/18]', photo: 'utilities', alt: 'Power lines on a pole against a grey sky', sizes: '(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw' },
-  { icon: GraduationCap, title: 'Schools', tags: 'Fees / portal access', question: 'I paid the fees but the portal still blocks my results.', log: 'GET /results 403 FEES_UNPAID', place: 'lg:col-[8/span_3]', ratio: 'aspect-[4/5]', photo: 'schools', alt: 'Two schoolboys in uniform working on a laptop in a classroom', sizes: '(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw' },
+  { icon: Smartphone, title: 'Mobile money', tags: 'Transfers / callbacks', question: 'I sent money but the receiver says nothing arrived.', found: 'The transfer left your account and is still waiting for the network to confirm it.', place: 'sm:col-span-2', ratio: 'aspect-[4/5]', photo: 'mobile-money', alt: 'A man in a striped shirt using his phone', sizes: '(min-width: 1024px) 30vw, (min-width: 640px) 33vw, 50vw' },
+  { icon: ShoppingBag, title: 'E-commerce', tags: 'Payments / webhooks / orders', question: 'I paid with MoMo but my order still says awaiting payment.', found: "Your payment came through, but the shop's system failed to update the order.", place: 'sm:col-span-2', ratio: 'aspect-[4/5]', photo: 'e-commerce', alt: 'A smiling woman holding a bank card', sizes: '(min-width: 1024px) 30vw, (min-width: 640px) 33vw, 50vw' },
+  { icon: Truck, title: 'Delivery', tags: 'Orders / rider events', question: 'The app says delivered but my parcel never came.', found: 'The rider marked the parcel as delivered, so the team checks with the rider.', place: 'sm:col-span-2', ratio: 'aspect-[4/5]', photo: 'delivery', alt: 'A motorcycle rider carrying a delivery box through a Nairobi street', sizes: '(min-width: 1024px) 30vw, (min-width: 640px) 33vw, 50vw' },
+  { icon: Zap, title: 'Utilities', tags: 'Purchases / tokens', question: 'I bought prepaid units but no token came.', found: 'The token provider did not answer in time, so no token was sent.', place: 'sm:col-span-2 sm:col-start-2', ratio: 'aspect-[4/5]', photo: 'utilities', alt: 'Power lines on a pole against a grey sky', sizes: '(min-width: 1024px) 30vw, (min-width: 640px) 33vw, 50vw' },
+  { icon: GraduationCap, title: 'Schools', tags: 'Fees / portal access', question: 'I paid the fees but the portal still blocks my results.', found: "The school's system still has your fees as unpaid, so results stay locked.", place: 'max-sm:col-span-2 max-sm:mx-auto max-sm:w-[calc(50%-0.5rem)] sm:col-span-2', ratio: 'aspect-[4/5]', photo: 'schools', alt: 'Two schoolboys in uniform working on a laptop in a classroom', sizes: '(min-width: 1024px) 30vw, (min-width: 640px) 33vw, 50vw' },
 ]
 
 const srcSet = (name: string) => `/images/${name}-640.webp 640w, /images/${name}-1200.webp 1200w`
 
-function CaseCard({ icon: Icon, title, tags, question, log, place, ratio, photo, alt, sizes }: UseCase) {
-  // Emotion's project card: a clean photo, a one-line meta row and a title that slides right as a
-  // ↪ appears on hover. The overlay shows the log line Helply would find (always on touch screens).
+function CaseCard({ icon: Icon, title, tags, question, found, place, ratio, photo, alt, sizes }: UseCase) {
+  // Emotion-style project card: a clean photo, a one-line meta row and a title that slides right as a
+  // ↪ appears on hover, with a plain-language note of what Helply finds (always shown on touch
+  // screens). Cards share one size and sit in even rows (3, then 2 centred).
   return (
     <li className={`group flex flex-col gap-4 ${place}`}>
       <div data-glitch className={`relative overflow-hidden rounded-[20px] bg-navy ${ratio}`}>
         <img src={`/images/${photo}-640.webp`} srcSet={srcSet(photo)} sizes={sizes} alt={alt} width={640} height={800} loading="lazy" decoding="async" className="case-photo absolute inset-0 h-full w-full object-cover" />
-        <p className="case-log absolute inset-x-3 bottom-3 rounded-[12px] border-l-2 border-sky bg-navy/85 px-2.5 py-1.5 font-mono text-[12px] leading-snug text-white">
-          <span className="sr-only">In the logs: </span>{log}
+        <p className="case-log absolute inset-x-3 bottom-3 rounded-[12px] bg-white px-3 py-2.5 text-[13px] leading-snug text-navy shadow-[0_12px_30px_-12px_rgb(15_23_42/0.5)]">
+          <span className="mb-1 flex items-center gap-1.5 text-[12px] font-semibold text-blue"><Turn className="h-3.5 w-3.5" />What {BRAND} finds</span>
+          {found}
         </p>
       </div>
       <div className="flex flex-col gap-2">
@@ -98,18 +100,13 @@ function CaseCard({ icon: Icon, title, tags, question, log, place, ratio, photo,
 export function WhoFor() {
   return (
     <section id="who" aria-labelledby="who-h" className="wrap pb-32">
-      <h2 id="who-h" className="display grid grid-cols-12 items-start text-[clamp(2rem,5.6vw,5.5rem)]">
-        <span className="col-span-3">Who</span>
-        <span className="col-span-4 col-start-4">
-          <em className="block">it&apos;s</em>
-          <span className="mono mt-3 hidden max-w-[300px] not-italic sm:block">Apps with logins and payments: mobile money, delivery, e-commerce, utilities, schools</span>
-        </span>
-        <span aria-hidden="true" className="col-span-2 col-start-9 pt-[0.25em] text-center"><ArrowRight className="inline h-[0.3em] w-[0.3em]" strokeWidth={1.5} /></span>
-        <span className="col-span-2 col-start-11 text-right">for</span>
-      </h2>
-      {/* On phones the caption sits under the heading instead of in its narrow column. */}
-      <p className="mono mt-4 sm:hidden">Apps with logins and payments: mobile money, delivery, e-commerce, utilities, schools</p>
-      <ul className="mt-7 grid grid-cols-2 items-start gap-x-4 gap-y-6 max-[360px]:grid-cols-1 sm:grid-cols-3 lg:mt-[3.25rem] lg:grid-cols-12 lg:gap-y-[3.25rem]">
+      <div className="mx-auto flex max-w-[1180px] flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <h2 id="who-h" className="display text-[clamp(2.25rem,5vw,4.5rem)]">
+          Who <em>it&apos;s</em> for
+        </h2>
+        <p className="mono max-w-[340px] text-mute sm:pb-3 sm:text-right">Apps with logins and payments: mobile money, delivery, e-commerce, utilities, schools</p>
+      </div>
+      <ul className="mx-auto mt-10 grid max-w-[1180px] grid-cols-2 items-start gap-x-4 gap-y-10 sm:grid-cols-6 sm:gap-x-6 lg:mt-14 lg:gap-x-8 lg:gap-y-16">
         {useCases.map((c) => <CaseCard key={c.title} {...c} />)}
       </ul>
       <div className="mt-20 flex justify-center"><Pill href={DEMO_URL}>See it with a real failed payment</Pill></div>
@@ -240,12 +237,12 @@ export function Contact() {
   )
 }
 
-/** The world shows through again: a progress ring and the next page, as on Emotion. */
+/** The world shows through again: the flakes spell the product name, with a progress ring and the next page. */
 export function NextPage() {
   const C = 2 * Math.PI * 34
   return (
     <section data-scene="5" data-next aria-label="Next page: docs" className="relative flex h-svh flex-col justify-between overflow-x-clip wrap pb-6 pt-24 text-white">
-      <p aria-hidden="true" className="mono flex justify-between">
+      <p aria-hidden="true" className="mono flex justify-center gap-[0.6em]">
         <span>[ Just</span><span>continue</span><span>to</span><span>reveal ]</span>
       </p>
       <a href={`${GITHUB_URL}#quickstart`} target="_blank" rel="noopener noreferrer" className="group flex flex-col items-center gap-3 pb-[4vh]">
@@ -257,7 +254,7 @@ export function NextPage() {
           <ArrowUpRight aria-hidden="true" size={20} className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
         </span>
         <span className="mono">[ Next page ]</span>
-        <span className="display text-[clamp(3rem,7vw,6rem)]">Docs</span>
+        <span className="display text-[clamp(1.75rem,3vw,2.5rem)]">Docs</span>
       </a>
     </section>
   )

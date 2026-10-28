@@ -55,7 +55,11 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 - **Routing: `site/` serves `/`, `web/` serves `/demo` and `/app/*`** (user decision). `site/scripts/assemble.mjs` merges both static builds into `site/deploy` and never edits `web/`. The web app's own `index.html` already clears its prerendered homepage on other paths, so it serves as the shell.
 - **Fonts follow the brand guide** (user request, reversing the earlier Emotion-font decision): Plus Jakarta Sans for everything; display 800 with -2% tracking in sentence case, a 500 italic lead word, 12px/500 captions. IBM Plex Mono stays only for log lines (`font-mono`), where monospace is functional. Instrument Serif removed.
 - **White nav bar** with the full-colour logo (user request); the over-the-world white text variant was removed.
-- **Gallery copies Emotion's CSS placement** exactly (read from emotion-agency.com's stylesheet): 12 columns, 1rem gap, 3.25rem row gap, item 2 lowered 13.4375rem, 3 columns on tablet, 2 on phones; title slides right with a ↪ on hover.
+- ~~**Gallery copies Emotion's CSS placement** exactly (staggered sizes and heights).~~ Superseded the same day: the user found the stagger disordered and chose **even rows** (five equal 4:5 cards, three then two centred; 2 columns on phones with the last centred). The Emotion hover (title slides right with a ↪) stays.
+- **Card entry no longer shakes:** the stepped "grid shift" glitch moved cards ±8 px sideways; replaced by a smooth top-to-bottom clip reveal with an inner photo zoom (measured 0 px sideways movement).
+- **Hover text is plain language** (user request): "What Helply finds" with one sentence per case, derived from the same failure each log line described; raw log lines are no longer shown on the cards.
+- **Footer wordmark in flakes** (user request): scene 5 is now a sixth flake shape, the product name rasterised in Plus Jakarta Sans 800 (`wordShape`), facing the camera above the mirror floor. Shrinks on portrait screens.
+- **"Who it's for" heading** set as one tight line with its caption beside it (below on phones), replacing the spread-out split heading.
 - **Photos from Pexels**, downloaded from the public CDN after web search (the pexels.com site blocks automated browsing, so no bot-check workaround), resized to WebP 640/1200 and self-hosted. Credited in the footer; the Pexels license needs no attribution.
 - **Scroll lag fixes:** flake animation moved to the vertex shader (was a 7,000-flake CPU loop re-uploading ~450 KB per frame); the world renders on GSAP's ticker after Lenis; resolution cap 1.5 and adaptive step-down; no animated CSS blur on headlines; no backdrop-filter over the canvas; focus list reads then writes layout; text scrub follows Lenis directly (no extra 0.6 s lag); all shape buffers uploaded before the gate opens.
 
@@ -158,4 +162,10 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
   - root `npm test` 73/73
 - **Deliberately not done:** editing `web/`; deploying; crediting individual photographers.
 - **Commit:** `22fafcb` on branch `landing-page`.
+
+### 2026-10-28: landing page round 3 (gallery order, shake, plain hover text, footer word)
+- **Built:** even-row gallery; smooth card reveal; plain-language "What Helply finds" hover notes; `wordShape` and the footer keyframe spelling the product name; tight "Who it's for" heading; centred "[ Just continue to reveal ]".
+- **Broke and fixed:** the stepped glitch entry shook cards sideways by 7–13 px (measured); replaced it. The photo entry animation's fill mode would have blocked the hover zoom (`backwards` instead of `both`).
+- **Verified:** `tsc` and build clean; Lighthouse mobile 93/100/100/100; no frames over 20 ms at 4x CPU slowdown; 0 px card movement after settling; desktop, tablet and phone screenshots; root `npm test` 73/73.
+- **Commit:** `COMMIT_PENDING` on branch `landing-page`.
 

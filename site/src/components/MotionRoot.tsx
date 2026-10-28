@@ -98,14 +98,14 @@ export default function MotionRoot({ children }: { children: ReactNode }) {
       cleanups.push(() => items.forEach((it) => { it.style.opacity = '' }))
     })
 
-    // 5. Gallery cards arrive with a pixel "grid shift".
-    gsap.set(q('[data-glitch]'), { clipPath: 'inset(0 0 100% 0)' })
+    // 5. Gallery cards open from the top as they enter (no sideways motion).
+    gsap.set(q('[data-glitch]'), { clipPath: 'inset(0 0 100% 0 round 20px)' })
     ScrollTrigger.batch(q('[data-glitch]'), {
       start: 'top 85%',
       once: true,
-      onEnter: (els) => (els as HTMLElement[]).forEach((e, i) => setTimeout(() => { e.style.clipPath = ''; e.classList.add('glitch-in') }, i * 120)),
+      onEnter: (els) => (els as HTMLElement[]).forEach((e, i) => { e.style.animationDelay = `${i * 0.08}s`; e.style.clipPath = ''; e.classList.add('glitch-in') }),
     })
-    cleanups.push(() => q('[data-glitch]').forEach((e: HTMLElement) => { e.classList.remove('glitch-in'); e.style.clipPath = '' }))
+    cleanups.push(() => q('[data-glitch]').forEach((e: HTMLElement) => { e.classList.remove('glitch-in'); e.style.clipPath = ''; e.style.animationDelay = '' }))
 
     // 6. Display headings in the flat page slide up line by line.
     q('[data-flat] .display').forEach((el: HTMLElement) => {

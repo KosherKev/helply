@@ -24,7 +24,8 @@ import {
 import { Reflector } from 'three/examples/jsm/objects/Reflector.js'
 import { createDust, createOffice, createSky, FOG, type Office } from './environment'
 import { FlakeCloud, scatterShape } from './flakes'
-import { bubbleShape, markShape, shieldShape, sphereShape, torusShape, type ShapeData } from './shapes'
+import { bubbleShape, markShape, shieldShape, sphereShape, torusShape, wordShape, type ShapeData } from './shapes'
+import { BRAND } from '@/lib/brand'
 import { motionEnabled, onReady, setProgress, type Quality } from '@/lib/motion'
 
 type V3 = [number, number, number]
@@ -33,7 +34,7 @@ type Key = { s: number; shape: number; cam: V3; tgt: V3; obj: V3; scale: number 
 /**
  * Camera and object keyframes, one per world scene. `s` matches the data-scene value of the
  * section in the page; 4.4 is the zoom into the ring just before the flash to the flat page,
- * 5 is the footer's "next page" view low across the mirror floor to the windows.
+ * 5 is the footer, where the flakes spell the product name above the mirror floor.
  */
 const KEYS: Key[] = [
   { s: 0, shape: 0, cam: [0, 4.2, 27], tgt: [0, 8, 0], obj: [0, 9.6, 0], scale: 1.9 },
@@ -42,7 +43,7 @@ const KEYS: Key[] = [
   { s: 3, shape: 3, cam: [3, 4.4, 24], tgt: [-1, 6, 0], obj: [-7.4, 7.6, -1], scale: 1.25 },
   { s: 4, shape: 4, cam: [0, 4.6, 25], tgt: [0, 8, 0], obj: [0, 9, 0], scale: 1.45 },
   { s: 4.4, shape: 4, cam: [0, 8.8, 7], tgt: [0, 9, 0], obj: [0, 9, 0], scale: 1.75 },
-  { s: 5, shape: 4, cam: [0, 1.4, 24], tgt: [0, 5, -46], obj: [0, 9, 0], scale: 0.001 },
+  { s: 5, shape: 5, cam: [0, 4.2, 26], tgt: [0, 6.2, -46], obj: [0, 7.2, 0], scale: 1 },
 ]
 
 const lerp3 = (a: V3, b: V3, t: number, out: Vector3) => out.set(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t)
@@ -222,12 +223,17 @@ export default function World({ quality }: { quality: Quality }) {
       if (sideways) objPos.x *= 0.25
       obj.position.copy(objPos)
       if (moving) obj.position.y += Math.sin(t * 0.7) * 0.12
-      const sc = A.scale + (B.scale - A.scale) * fe
+      let sc = A.scale + (B.scale - A.scale) * fe
+      // The footer word is wide: shrink it on portrait screens so it fits.
+      if (sideways && stage > 4.4) sc *= 0.45
       obj.scale.setScalar(Math.max(sc, 0.001))
       obj.visible = sc > 0.01
       spin += moving ? dt * 0.25 : 0
-      const markW = (A.shape === 0 ? 1 - f : 0) + (B.shape === 0 ? f : 0)
-      obj.rotation.set(0, (moving ? Math.sin(t * 0.4) * 0.35 : 0) * markW + spin * (1 - markW), 0)
+      // The mark and the footer word face the camera and only sway; other shapes spin.
+      const faces = (shape: number) => shape === 0 || shape === 5
+      const markW = (faces(A.shape) ? 1 - f : 0) + (faces(B.shape) ? f : 0)
+      const sway = B.shape === 5 ? 0.12 : 0.35
+      obj.rotation.set(0, (moving ? Math.sin(t * 0.4) * sway : 0) * markW + spin * (1 - markW), 0)
 
       // Cursor push: intersect the ray with a camera-facing plane through the object.
       const live = moving && now - pointerAt < 2500 ? 1 : 0
@@ -266,7 +272,7 @@ export default function World({ quality }: { quality: Quality }) {
       const mark = await markShape(N, '/brand/helply-mark-color.svg')
       if (disposed) return
       setProgress(0.55)
-      shapes = [mark, bubbleShape(N), sphereShape(N), shieldShape(N), torusShape(N)]
+      shapes = [mark, bubbleShape(N), sphereShape(N), shieldShape(N), torusShape(N), wordShape(N, BRAND, 15)]
       scatter = scatterShape(N, mark)
       flakes.update(scatter, mark, 0, 0, false, pointer) // gives the shader its attributes before compiling
       measure()

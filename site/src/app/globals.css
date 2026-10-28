@@ -105,15 +105,15 @@ html.lenis, html.lenis body { height: auto; }
   .group:hover .case-turn { transform: scale(1) translateY(-50%); }
 }
 
-/* Pixel "grid shift" glitch for gallery cards on entry */
-@keyframes grid-shift {
-  0% { clip-path: inset(0 0 100% 0); transform: translateX(0); filter: saturate(2) hue-rotate(-20deg); }
-  30% { clip-path: inset(0 0 55% 0); transform: translateX(-6px); }
-  45% { clip-path: inset(30% 0 20% 0); transform: translateX(8px); }
-  60% { clip-path: inset(0 0 10% 0); transform: translateX(-3px); filter: saturate(1.4) hue-rotate(10deg); }
-  100% { clip-path: inset(0 0 0 0); transform: translateX(0); filter: none; }
+/* Gallery cards open top to bottom as they enter. Clip and inner scale only: the card itself never
+   moves sideways, so the grid stays still (the earlier stepped "grid shift" jittered the layout). */
+@keyframes card-reveal {
+  from { clip-path: inset(0 0 100% 0 round 20px); }
+  to { clip-path: inset(0 0 0 0 round 20px); }
 }
-.glitch-in { animation: grid-shift 0.9s steps(6, end) both; }
+@keyframes card-photo-in { from { transform: scale(1.18); } to { transform: scale(1.02); } }
+.glitch-in { animation: card-reveal 1.1s var(--ease-out-expo) both; }
+.glitch-in .case-photo { animation: card-photo-in 1.6s var(--ease-out-expo) backwards; } /* backwards: hands back to the hover zoom after */
 
 html[data-motion="off"] .pill::before, html[data-motion="off"] .orb { animation: none; }
 @media (prefers-reduced-motion: reduce) {
