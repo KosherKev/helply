@@ -190,6 +190,15 @@ if (require.main === module) {
   if (!config.demoMode && !config.encryptionKey) console.warn("[helply] HELPLY_ENCRYPTION_KEY is not set: stored secrets will not survive a restart.");
   const app = buildApp(config);
   app.locals.ready.then(() => {
+    // Demo mode on a host with an ephemeral disk (Render): recreate the demo data on every cold start and keep the demo logs fresh.
+    if (config.demoMode && process.env.DEMO_SEED !== "false") {
+      const { seedDemoData } = require("./demo/seedData");
+      const { ensureDemoLogs } = require("./demo/seedLogs");
+      if (seedDemoData({ repo: app.locals.ctx.repo, workspaceId: DEFAULT_WORKSPACE_ID })) console.log("[helply] demo data seeded (business details, FAQ, sample conversations)");
+      const keep = (attempt = 1) => ensureDemoLogs({ baseUrl: config.cls.baseUrl, readKey: config.cls.apiKey, writeKey: config.cls.writeKey, service: config.cls.service }).then((r) => { if (r === "failed" && attempt < 4) setTimeout(() => keep(attempt + 1), 60_000 * attempt).unref(); });
+      keep();
+      setInterval(() => keep(), 30 * 60_000).unref();
+    }
     app.locals.sweepRetention();
     setInterval(() => app.locals.sweepRetention(), 3_600_000).unref();
     app.listen(config.port, () => {

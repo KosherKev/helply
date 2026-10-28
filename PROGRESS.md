@@ -145,6 +145,11 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 - **Deployed `web/` to Vercel with the CLI** (project `helply-web`, account kosherkev): **https://helply-web-bice.vercel.app**. `web/vercel.json` proxies `/v1/*` and `/health` to the Render API (`https://helply-pjww.onrender.com`) so the browser sees one origin (no CORS change on Render), with an SPA fallback and security/cache headers. Verified: `/`, `/demo`, `/app/login` 200; proxied demo token and a knowledge-base answer work; `/demo` loads with no console errors and shows model, Khaya, logs and voice connected.
 - **Known gaps on the live pair:** Render still cannot reach a log service (Ama's account question fails closed); the dashboard's live updates (SSE) go through Vercel's proxy and may be cut off, pages still work; changing the Render URL means editing `web/vercel.json` and redeploying (`cd web && vercel deploy --prod`).
 
+### 2026-10-28 (cold-start seeding, frontend env)
+- **Render has no persistent disk, so the API re-seeds on every cold start (demo mode):** `src/demo/seedData.js` recreates business details, 5 FAQs, two sample conversations with tickets, an issue and a knowledge gap in the default workspace (idempotent); `src/demo/seedLogs.js` (shared with `npm run seed`) writes the fictional demo logs into the log service when `CLS_WRITE_KEY` is set, only when Ama's newest log is older than 90 minutes, rechecked every 30 minutes, retried on failure, never blocks startup. `DEMO_SEED=false` disables. Verified on a real cold start against the local log service: demo data present, 40 logs seeded, Ama's MoMo story answered with citations. Tests 126/126.
+- **Frontend env:** one Vercel project serves landing and dashboard; `VITE_API_URL` stays unset (same-origin via the rewrite); `VITE_GITHUB_URL` set on Vercel and the wrong default (`kevinafenyo`) fixed to `KosherKev`; table in `docs/DEPLOY.md`.
+- **Config fix:** `ALLOW_PRIVATE_LOG_SOURCES` can now be forced to `false` in demo mode (it used to be always on there).
+
 ## Known Limitations
 
 1. ~~In-memory store.~~ Resolved: SQLite (`HELPLY_DB_PATH`, default `.data/helply.db` for `npm start`). Tests use `:memory:`.
@@ -186,6 +191,8 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 45. Real-model live check of the latest paths (playbook wording, rules, tone with Khaya languages, crawler against a real site) has not been run.
 
 46. Deployment is untested end to end (images unbuilt, no server). First `docker compose up` may need small fixes. No CSP header, single API process (do not scale out: in-memory rate limits/events), SQLite only.
+
+47. On the Vercel+Render pair every visitor reaches the API from the proxy, so per-IP rate limits may share one address; `TRUST_PROXY` needs the real hop count measured on the live service. Cold-start seeding restores demo data only: workspaces registered by visitors are lost on restart until the API gets a persistent disk or Postgres.
 
 ## Next Steps
 

@@ -17,7 +17,8 @@ const load = (env = process.env) => ({
   allowInsecureWebhooks: env.ALLOW_INSECURE_WEBHOOKS === "true", // tests / local dev only
   emailServiceUrl: trimSlash(env.EMAIL_SERVICE_URL),
   emailApiKey: env.EMAIL_API_KEY || "",
-  allowPrivateLogSources: env.ALLOW_PRIVATE_LOG_SOURCES === "true" || env.DEMO_MODE === "true",
+  // Demo mode allows local log sources by default; set ALLOW_PRIVATE_LOG_SOURCES=false on a PUBLIC demo with open sign-up (SSRF).
+  allowPrivateLogSources: env.ALLOW_PRIVATE_LOG_SOURCES !== undefined ? env.ALLOW_PRIVATE_LOG_SOURCES === "true" : env.DEMO_MODE === "true",
   demoPassword: env.DEMO_PASSWORD || "helply-demo-pass",
   consoleKey: env.CONSOLE_KEY || "",
   jwtSecret: env.HELPLY_JWT_SECRET || "",
@@ -26,6 +27,7 @@ const load = (env = process.env) => ({
     baseUrl: trimSlash(env.CLS_BASE_URL),
     apiKey: env.CLS_API_KEY || "",
     service: env.CLS_SERVICE || "demo-shop-api",
+    writeKey: env.CLS_WRITE_KEY || "", // only used to seed the demo story (logs:write); never used on the support path
   },
   gemma: {
     apiKey: env.GEMMA_API_KEY || "",
