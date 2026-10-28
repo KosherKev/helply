@@ -54,7 +54,11 @@ CLS_REPO_PATH=/opt/central-logging-service docker compose --env-file .env.produc
 docker compose --env-file .env.production -f docker-compose.yml -f deploy/docker-compose.logs.yml exec cls node src/utils/generateAppApiKey.js helply-read --scopes=logs:read --live
 docker compose --env-file .env.production -f docker-compose.yml -f deploy/docker-compose.logs.yml exec cls node src/utils/generateAppApiKey.js helply-seed --scopes=logs:write --live
 ```
-Set `CLS_BASE_URL=http://cls:8080` and recreate the API (`up -d`). Seed the fictional story from your machine against the server, or from the repo on the Droplet: `CLS_BASE_URL=http://localhost:8080 CLS_WRITE_KEY=... npm run seed` is not reachable from outside (port not published, by design), so run it inside the network: `docker compose ... run --rm -e CLS_BASE_URL=http://cls:8080 -e CLS_WRITE_KEY=... api node scripts/seed-logs.js` (add `COPY scripts ./scripts` to the Dockerfile if you want this; otherwise seed from your laptop by temporarily publishing the port).
+Set `CLS_BASE_URL=http://cls:8080` and `CLS_WRITE_KEY` in `.env.production`, recreate the API (`up -d`), then seed the fictional story from inside the network and check everything:
+```bash
+docker compose --env-file .env.production -f docker-compose.yml -f deploy/docker-compose.logs.yml exec api node scripts/seed-logs.js
+docker compose --env-file .env.production exec api node scripts/verify-live.js --e2e   # needs DEMO_MODE=true for the e2e part
+```
 **Never** point a demo at a shared production logging database with real users' logs.
 
 ## 6. Operate

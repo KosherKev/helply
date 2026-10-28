@@ -87,6 +87,10 @@ Single source of truth for project state. Read top to bottom at the start of eve
 - **Decision:** the onboarding test uses a server-trusted identity instead of signing a token, so it works in public-key mode.
 - **Decision:** `issue.fixed` webhook is the delivery mechanism for "notify affected customers".
 
+### 2026-10-28 (deployment artifacts)
+- **Decision: DigitalOcean Droplet + Docker Compose + Caddy, not App Platform**, because SQLite needs a persistent disk. Same-origin proxy (`/v1`, `/health`) so the site needs no CORS. Files: `Dockerfile`, `deploy/Dockerfile.web`, `deploy/Caddyfile`, `docker-compose.yml`, `deploy/production.env.example`, `deploy/docker-compose.logs.yml` (optional log service + MongoDB), `deploy/backup.sh`, `docs/DEPLOY.md`.
+- **Validated:** `docker compose config` parses; the API boots in production mode (`DEMO_MODE=false`) and registers a workspace. **Not validated:** the Docker images were never built (no Docker daemon was running here) and Caddy was never started; nothing was deployed (no DigitalOcean access from this session).
+
 ## Known Limitations
 
 1. ~~In-memory store.~~ Resolved: SQLite (`HELPLY_DB_PATH`, default `.data/helply.db` for `npm start`). Tests use `:memory:`.
@@ -140,6 +144,8 @@ Single source of truth for project state. Read top to bottom at the start of eve
 
 44. JWKS URLs and key rotation by `kid` are not supported (single PEM per workspace). Password reset email has no HTML template (plain text rendered as HTML). The crawler does not execute JavaScript, so client-rendered sites index poorly.
 45. Real-model live check of the latest paths (playbook wording, rules, tone with Khaya languages, crawler against a real site) has not been run.
+
+46. Deployment is untested end to end (images unbuilt, no server). First `docker compose up` may need small fixes. No CSP header, single API process (do not scale out: in-memory rate limits/events), SQLite only.
 
 ## Next Steps
 

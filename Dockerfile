@@ -11,6 +11,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json ./
 COPY src ./src
 COPY migrations ./migrations
+COPY scripts/seed-logs.js scripts/verify-live.js scripts/check-khaya.js ./scripts/
 RUN mkdir -p /data && chown -R node:node /data /app
 USER node
 VOLUME /data
