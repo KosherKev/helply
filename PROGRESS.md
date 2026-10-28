@@ -10,7 +10,7 @@ Single source of truth for project state. Read top to bottom at the start of eve
 | Blocking issues | None hard-blocking. Needs the user's keys (KL-2, KL-3) and a committed `userId` filter in central-logging-service (KL-9). |
 | Next action | Confirm `GITHUB_URL` with Kevin (KL-20); deploy `site/deploy` (`npm run build:all` in `site/`); then the user dashboard. |
 | Repo state | Git repo on `main` with commits up to the landing page (see Changelog). Landing page on branch `landing-page`, not merged. Cross-repo: `../central-logging-service` still has an uncommitted `userId` filter (3 files). |
-| Verified running | `npm test` (root): **73/73 pass** with real `npm ci` (no borrowed modules). `site/`: `tsc --noEmit` clean, `next build` clean; Lighthouse mobile on `/` served compressed (`serve`): **performance 92–94, accessibility 100, best practices 100, SEO 100** (LCP 3.0–3.1 s, TBT 70–120 ms, CLS 0), measured on the assembled `site/deploy`. Scroll profile at 1440x900, DPR 2, CPU 4x slowdown: no frames over 20 ms (was 4.3%). `/`, `/demo` and `/app/*` load from `site/deploy` with no errors. Desktop 1440x900 and mobile 390x844 walkthroughs: no console errors, no horizontal scroll. **Not verified against live Gemma, Khaya or central-logging-service.** No root linter (KL-7). |
+| Verified running | `npm test` (root): **73/73 pass** with real `npm ci` (no borrowed modules). `site/`: `tsc --noEmit` clean, `next build` clean; Lighthouse mobile on `/` served compressed (`serve`): **performance 92–94, accessibility 100, best practices 100, SEO 100** (LCP 3.0–3.1 s, TBT 70–120 ms, CLS 0), measured on the assembled `site/deploy`. Scroll profile at 1440x900, DPR 2, CPU 4x slowdown: 0.6–1% of frames over 20 ms in round 5 (run-to-run noise; was 4.3% before the round-1 fixes). Round 5 Lighthouse mobile 91–94/100/100/100. `/`, `/demo` and `/app/*` load from `site/deploy` with no errors. Desktop 1440x900 and mobile 390x844 walkthroughs: no console errors, no horizontal scroll. **Not verified against live Gemma, Khaya or central-logging-service.** No root linter (KL-7). |
 | Deadline | Hackathon submission ~19:00 Africa/Accra, 2026-10-28. Feature freeze target 18:00. |
 
 ## Reconciliation (2026-10-28, landing-page session)
@@ -60,6 +60,13 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 - **Hover text is plain language** (user request): "What Helply finds" with one sentence per case, derived from the same failure each log line described; raw log lines are no longer shown on the cards.
 - **Footer wordmark in flakes** (user request): scene 5 is now a sixth flake shape, the product name rasterised in Plus Jakarta Sans 800 (`wordShape`), facing the camera above the mirror floor. Shrinks on portrait screens.
 - **Particle object re-matched to Emotion** (user request, after re-recording emotion-agency.com idle, cursor and scroll sequences): round beads instead of flat flakes (10,000 high / 3,600 low); morphs pass through a glowing ellipsoid cloud (shape A -> cloud -> shape B); the mark is a thick slab that sways and turns with scroll; other shapes drift on two axes; the object leans toward the cursor and a wide patch lights up; idle shimmer band, single-bead sparkle, a loose halo and drifting beads. A first pass looked packed ("sticky" per the user); beads were made smaller, offset from their sample points with a 10% halo, while keeping the core legible.
+- **Round 5 (user feedback: logo not visible, beads motionless, light effects distorting, loader and entry unlike Emotion, flash late):** after recording Emotion's loader, cursor trail and Enter sequence frame by frame:
+  - The mark is drawn from its own SVG paths, part by part, with heavier strokes and an open bubble (no filled body), the way Emotion's "e" is a bold outline with holes. It reads as the H, handshake and bubble at rest.
+  - Beads float on a flow field keyed to their place in the shape (amplitude 0.11, was 0.045), so the surface visibly moves; beads are smaller and the halo is 4% (was 10%).
+  - Light effects reduced to accents: lower shine, darker base colour with a small self-glow, shimmer and cursor glow halved. The periodic light pulse was removed at the user's request ("the bang is not supposed to pulsate, it's supposed to just spark"): the beads flash white once on entry and settle into colour.
+  - Loader rebuilt after Emotion's: logo and caption high, a full-width progress line with "Experience / is loading... / Please / wait / 0042 / out of / 100%", a soft white smoke trail that follows the cursor, then Enter and Enter without motion. Audio is not offered (Helply has none).
+  - Entry "light bang" on a 2D canvas: a white spark beats, then swells into a breathing cloud with a wobbly edge and a hole opening onto the world. The beads burst out of the centre through the glowing cloud into the mark.
+  - The flash into the flat page is now fully white before the flat page starts to come up, and clears only as that page fills the screen. It used to fire after the page was already visible.
 - **"Who it's for" heading** set as one tight line with its caption beside it (below on phones), replacing the spread-out split heading.
 - **Photos from Pexels**, downloaded from the public CDN after web search (the pexels.com site blocks automated browsing, so no bot-check workaround), resized to WebP 640/1200 and self-hosted. Credited in the footer; the Pexels license needs no attribution.
 - **Scroll lag fixes:** flake animation moved to the vertex shader (was a 7,000-flake CPU loop re-uploading ~450 KB per frame); the world renders on GSAP's ticker after Lenis; resolution cap 1.5 and adaptive step-down; no animated CSS blur on headlines; no backdrop-filter over the canvas; focus list reads then writes layout; text scrub follows Lenis directly (no extra 0.6 s lag); all shape buffers uploaded before the gate opens.
@@ -92,6 +99,8 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 24. `docs/brand/README.md`, referenced by the handover, does not exist; the brand kit was taken from the user's Downloads.
 25. Scroll smoothness was measured in headless Chrome (no vsync, Apple GPU). Not yet checked on a low-end Windows laptop or a mid-range Android phone.
 26. The DigitalOcean static-site settings in `site/README.md` are documented but not deployed or tested.
+27. The loader's cursor trail is a 2D-canvas smoke imitation, not a fluid simulation like Emotion's; the entry bang is matched by eye from 100 ms captures, not from Emotion's source.
+28. Round 5 visuals were checked in headless Chrome only; the user views them in Safari, where WebGL colour and canvas shadow blur can differ slightly.
 
 ## Next Steps
 
@@ -175,4 +184,21 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 - **Broke and fixed:** first bead pass was too dense and too white (sticky look); second pass too blurry to read the mark; final pass tightens the core (offset 0.08, halo 10%, float 0.045) and lowers environment shine.
 - **Verified:** `tsc` and build clean; side-by-side captures against Emotion (idle, cursor sweep, scroll morph); Lighthouse mobile 93/100/100/100; 0.1% frames over 20 ms at 4x CPU slowdown; no console errors.
 - **Commit:** `6d3b772` on branch `landing-page`.
+
+### 2026-10-28: landing page round 5 (legible mark, flowing beads, Emotion loader and light bang)
+- **Built:**
+  - `shapes.ts`: the mark is sampled from its own paths (Path2D), with heavier strokes and an open bubble.
+  - `flakes.ts`: flow-field float, smaller beads, softer light, a one-off `uBang` white flash, and the periodic pulse removed.
+  - `Gate.tsx`: the loader rebuilt (progress line and counter, cursor smoke trail, beating spark that opens into a breathing cloud-edged hole).
+  - `MotionRoot.tsx`: the flash goes white before the flat page and clears after it.
+  - `World.tsx`: a gentler intro camera and less resting sway.
+- **Broke and fixed:**
+  - The first colour pass washed the beads to white under the room lights. Fixed with a darker base, lower shine and a small self-glow.
+  - The first float was still too small to read as motion.
+- **Verified:**
+  - `tsc` and `build:all` clean; root `npm test` 73/73.
+  - Captures of the loader, trail, entry and flash hand-off, compared with Emotion's.
+  - Lighthouse mobile 94/100/100/100; 0.6% of frames over 20 ms at 4x CPU slowdown; no console errors.
+- **Not done:** fluid-sim trail (KL-27); Safari check (KL-28).
+- **Commit:** see the next entry.
 

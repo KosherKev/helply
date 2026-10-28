@@ -119,3 +119,8 @@ html[data-motion="off"] .pill::before, html[data-motion="off"] .orb { animation:
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
+
+/* Loader: "is loading..." dots count up, as on Emotion. */
+.loading-dots::after { content: '...'; display: inline-block; width: 1.5em; text-align: left; animation: loading-dots 1.2s steps(4, end) infinite; overflow: hidden; vertical-align: bottom; }
+@keyframes loading-dots { from { width: 0; } to { width: 1.5em; } }
+@media (prefers-reduced-motion: reduce) { .loading-dots::after { animation: none; } }

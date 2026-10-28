@@ -58,11 +58,15 @@ export default function MotionRoot({ children }: { children: ReactNode }) {
     const flash = document.querySelector<HTMLElement>('[data-flash]')
     const fill = document.querySelector<HTMLElement>('[data-flash-fill]')
     if (zone && flash && fill) {
-      gsap.timeline({ scrollTrigger: { trigger: zone, start: 'center 60%', end: 'bottom top', scrub: true } })
-        .fromTo(flash, { '--r': '0vmax', opacity: 0 }, { '--r': '30vmax', opacity: 1, ease: 'power1.in', duration: 0.35 })
-        .to(flash, { '--r': '120vmax', ease: 'power2.in', duration: 0.35 })
+      // The screen is fully white by the time the flat page starts to come up, and the white only
+      // clears once that page fills the screen, so the page is never seen before the flash.
+      gsap.timeline({ scrollTrigger: { trigger: zone, start: 'top 30%', end: 'bottom bottom', scrub: true } })
+        .fromTo(flash, { '--r': '0vmax', opacity: 0 }, { '--r': '30vmax', opacity: 1, ease: 'power1.in', duration: 0.45 })
+        .to(flash, { '--r': '120vmax', ease: 'power2.in', duration: 0.4 })
         .to(fill, { opacity: 1, ease: 'none', duration: 0.15 }, '-=0.15')
-        .to([flash, fill], { opacity: 0, ease: 'none', duration: 0.15 })
+      gsap.timeline({ scrollTrigger: { trigger: zone, start: 'bottom bottom', end: 'bottom top', scrub: true } })
+        .fromTo(flash, { opacity: 1 }, { opacity: 0, ease: 'none', duration: 0.2, immediateRender: false })
+        .fromTo(fill, { opacity: 1 }, { opacity: 0, ease: 'power1.in', duration: 0.8, immediateRender: false }, 0.2)
     }
 
     // 3. Paragraph words light up while scrolling.

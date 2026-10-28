@@ -99,7 +99,7 @@ export default function World({ quality }: { quality: Quality }) {
     setProgress(0.3)
 
     const N = high ? 10000 : 3600
-    const flakes = new FlakeCloud(N, high ? 0.036 : 0.05)
+    const flakes = new FlakeCloud(N, high ? 0.03 : 0.042)
     const obj = new Group()
     obj.add(flakes.mesh)
     scene.add(obj)
@@ -156,7 +156,7 @@ export default function World({ quality }: { quality: Quality }) {
       const start = performance.now()
       const step = () => {
         if (disposed) return
-        intro.v = Math.min(1, (performance.now() - start) / 2600)
+        intro.v = Math.min(1, (performance.now() - start) / 2200)
         if (intro.v < 1) requestAnimationFrame(step)
       }
       step()
@@ -209,8 +209,8 @@ export default function World({ quality }: { quality: Quality }) {
       lerp3(A.tgt, B.tgt, fe, camTgt)
       if (sideways && stage < 4.2) camPos.z *= 1.45
       const introE = ease(intro.v)
-      camPos.y += (1 - introE) * 7
-      camPos.z += (1 - introE) * 16
+      camPos.y += (1 - introE) * 3
+      camPos.z += (1 - introE) * 8
       if (moving) {
         par.x = MathUtils.damp(par.x, ndc.x, 2.5, dt)
         par.y = MathUtils.damp(par.y, ndc.y, 2.5, dt)
@@ -235,7 +235,7 @@ export default function World({ quality }: { quality: Quality }) {
       const markW = (faces(A.shape) ? 1 - f : 0) + (faces(B.shape) ? f : 0)
       const logoW = (A.shape === 0 ? 1 - f : 0) + (B.shape === 0 ? f : 0)
       const word = A.shape === 5 || B.shape === 5
-      const sway = word ? 0.12 : 0.5
+      const sway = word ? 0.12 : 0.28
       if (moving) {
         lean.x = MathUtils.damp(lean.x, ndc.x, 3, dt)
         lean.y = MathUtils.damp(lean.y, ndc.y, 3, dt)
@@ -263,7 +263,9 @@ export default function World({ quality }: { quality: Quality }) {
 
       const from = intro.v < 1 && scatter ? scatter : shapes[A.shape]
       const to = intro.v < 1 ? shapes[A.shape] : shapes[B.shape]
-      flakes.update(from, to, intro.v < 1 ? introE : f, t, moving, pointer)
+      // Entry flash: the beads leave the spark white-hot and settle into their colours.
+      const bang = intro.v < 1 ? Math.pow(1 - intro.v, 1.5) : 0
+      flakes.update(from, to, intro.v < 1 ? introE : f, t, moving, pointer, bang)
 
       ;(sky.material as ShaderMaterial).uniforms.uTime.value = t
       dust.rotation.y = t * 0.015
@@ -281,7 +283,7 @@ export default function World({ quality }: { quality: Quality }) {
       office = createOffice(high)
       scene.add(office.group)
       setProgress(0.45)
-      const mark = await markShape(N, '/brand/helply-mark-color.svg')
+      const mark = markShape(N)
       if (disposed) return
       setProgress(0.55)
       shapes = [mark, bubbleShape(N), sphereShape(N), shieldShape(N), torusShape(N), wordShape(N, BRAND, 15)]
