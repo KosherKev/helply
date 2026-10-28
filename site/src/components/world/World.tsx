@@ -98,8 +98,8 @@ export default function World({ quality }: { quality: Quality }) {
     scene.add(dust)
     setProgress(0.3)
 
-    const N = high ? 7000 : 2600
-    const flakes = new FlakeCloud(N, high ? 0.065 : 0.085)
+    const N = high ? 10000 : 3600
+    const flakes = new FlakeCloud(N, high ? 0.036 : 0.05)
     const obj = new Group()
     obj.add(flakes.mesh)
     scene.add(obj)
@@ -170,7 +170,7 @@ export default function World({ quality }: { quality: Quality }) {
     const observeScenes = () => document.querySelectorAll('[data-scene]').forEach((n) => io.observe(n))
 
     const camPos = new Vector3(), camTgt = new Vector3(), objPos = new Vector3(), tmp = new Vector3()
-    const par = { x: 0, y: 0 }
+    const par = { x: 0, y: 0 }, lean = { x: 0, y: 0 }
     let t = 0, last = performance.now(), spin = 0, running = false
     let slowAvg = 1 / 60, slowFrames = 0
 
@@ -228,12 +228,24 @@ export default function World({ quality }: { quality: Quality }) {
       if (sideways && stage > 4.4) sc *= 0.45
       obj.scale.setScalar(Math.max(sc, 0.001))
       obj.visible = sc > 0.01
-      spin += moving ? dt * 0.25 : 0
-      // The mark and the footer word face the camera and only sway; other shapes spin.
+      // Turning, as on Emotion: the logo sways and turns further as you scroll the hero; other shapes
+      // drift on two axes; the whole object leans toward the cursor. The footer word stays readable.
+      spin += moving ? dt * 0.18 : 0
       const faces = (shape: number) => shape === 0 || shape === 5
       const markW = (faces(A.shape) ? 1 - f : 0) + (faces(B.shape) ? f : 0)
-      const sway = B.shape === 5 ? 0.12 : 0.35
-      obj.rotation.set(0, (moving ? Math.sin(t * 0.4) * sway : 0) * markW + spin * (1 - markW), 0)
+      const logoW = (A.shape === 0 ? 1 - f : 0) + (B.shape === 0 ? f : 0)
+      const word = A.shape === 5 || B.shape === 5
+      const sway = word ? 0.12 : 0.5
+      if (moving) {
+        lean.x = MathUtils.damp(lean.x, ndc.x, 3, dt)
+        lean.y = MathUtils.damp(lean.y, ndc.y, 3, dt)
+      }
+      const leanK = word ? 0.25 : 1
+      obj.rotation.set(
+        (moving ? Math.sin(t * 0.33) * 0.2 : 0) * (1 - markW) - lean.y * 0.35 * leanK,
+        (moving ? Math.sin(t * 0.4) * sway : 0) * markW + spin * (1 - markW) + stage * 1.1 * logoW + lean.x * 0.7 * leanK,
+        0,
+      )
 
       // Cursor push: intersect the ray with a camera-facing plane through the object.
       const live = moving && now - pointerAt < 2500 ? 1 : 0

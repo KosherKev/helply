@@ -88,7 +88,9 @@ export async function markShape(n: number, url: string): Promise<ShapeData> {
     const list = parts[part]
     const p = list[Math.floor(r() * list.length)]
     const px = p % size, py = Math.floor(p / size)
-    const depth = part === 'h' ? 0.32 + r() * 0.12 : part === 'hand' ? 0.44 + r() * 0.1 : part === 'rim' ? (r() - 0.5) * 0.7 : (r() - 0.5) * 0.5
+    // A thick slab, like Emotion's extruded logo, so it reads as a volume as it turns. The H and the
+    // handshake fill the front half so the mark stays legible from the front.
+    const depth = part === 'h' ? 0.1 + r() * 0.42 : part === 'hand' ? 0.2 + r() * 0.38 : (r() - 0.5) * 1.0
     pos[i * 3] = (px - cx) * scale + (r() - 0.5) * 0.03
     pos[i * 3 + 1] = -(py - cy) * scale + (r() - 0.5) * 0.03
     pos[i * 3 + 2] = depth
