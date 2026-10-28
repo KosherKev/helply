@@ -2,7 +2,7 @@
 openapi: 3.1.0
 info:
   title: Helply API
-  version: 1.1.0
+  version: 1.2.0-planned
   license:
     name: MIT
     identifier: MIT
@@ -25,6 +25,14 @@ tags:
   - name: Analytics
   - name: Privacy
   - name: Planned
+  - name: Onboarding
+  - name: Business
+  - name: Playbooks
+  - name: Quality
+  - name: Issues
+  - name: Customers
+  - name: Channels
+  - name: Relay
 paths:
   /health:
     get:
@@ -1627,6 +1635,60 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+    patch:
+      tags:
+        - Conversations
+      summary: Assign a conversation
+      operationId: patch_v1_conversations__id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      x-planned: true
+      x-priority: P0
+      security:
+        - sessionAuth: []
+      x-min-role: agent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                assigneeId:
+                  type:
+                    - string
+                    - "null"
+              required:
+                - assigneeId
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /v1/conversations/{id}/takeover:
     post:
       tags:
@@ -2763,6 +2825,7 @@ paths:
       summary: Embeddable chat script
       operationId: get_widget_js
       x-planned: true
+      security: []
       responses:
         "200":
           description: OK
@@ -2783,6 +2846,7 @@ paths:
       summary: Origin-allowlisted widget bootstrap
       operationId: post_v1_widget_session
       x-planned: true
+      security: []
       responses:
         "200":
           description: OK
@@ -2814,6 +2878,7 @@ paths:
           schema:
             type: string
       x-planned: true
+      security: []
       responses:
         "200":
           description: OK
@@ -2821,6 +2886,2403 @@ paths:
             text/plain:
               schema:
                 type: string
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/onboarding:
+    get:
+      tags:
+        - Onboarding
+      summary: Onboarding checklist computed from the workspace's real state
+      operationId: get_v1_onboarding
+      x-planned: true
+      x-priority: P0
+      security:
+        - sessionAuth: []
+      x-min-role: agent
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Onboarding"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/onboarding/test:
+    post:
+      tags:
+        - Onboarding
+      summary: Run a real test customer message through the full pipeline (not counted in analytics)
+      operationId: post_v1_onboarding_test
+      x-planned: true
+      x-priority: P0
+      security:
+        - sessionAuth: []
+      x-min-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                message:
+                  type: string
+                language:
+                  type: string
+                  enum:
+                    - en
+                    - tw
+                    - gaa
+                    - ee
+                    - fat
+                    - dag
+                    - pcm
+              required:
+                - userId
+                - message
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportResponse"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/onboarding/go-live:
+    post:
+      tags:
+        - Onboarding
+      summary: Switch the AI on for customers (requires readyForLive)
+      operationId: post_v1_onboarding_go_live
+      x-planned: true
+      x-priority: P0
+      security:
+        - sessionAuth: []
+      x-min-role: admin
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Onboarding"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/onboarding/pause:
+    post:
+      tags:
+        - Onboarding
+      summary: "Pause the AI: every message goes to a person"
+      operationId: post_v1_onboarding_pause
+      x-planned: true
+      x-priority: P0
+      security:
+        - sessionAuth: []
+      x-min-role: admin
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Onboarding"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/business-profile:
+    get:
+      tags:
+        - Business
+      summary: Business profile the assistant may rely on
+      operationId: get_v1_business_profile
+      x-planned: true
+      x-priority: P0
+      security:
+        - sessionAuth: []
+      x-min-role: agent
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BusinessProfile"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      tags:
+        - Business
+      summary: Replace the business profile
+      operationId: put_v1_business_profile
+      x-planned: true
+      x-priority: P0
+      security:
+        - sessionAuth: []
+      x-min-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BusinessProfile"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BusinessProfile"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/faqs:
+    get:
+      tags:
+        - Business
+      summary: List FAQ entries
+      operationId: get_v1_faqs
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: language
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: enabled
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+      x-planned: true
+      x-priority: P0
+      security:
+        - sessionAuth: []
+      x-min-role: agent
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Faq"
+                  nextCursor:
+                    type:
+                      - string
+                      - "null"
+                required:
+                  - data
+                  - nextCursor
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - Business
+      summary: Create an FAQ entry
+      operationId: post_v1_faqs
+      x-planned: true
+      x-priority: P0
+      security:
+        - sessionAuth: []
+      x-min-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                answer:
+                  type: string
+                language:
+                  type: string
+                  enum:
+                    - en
+                    - tw
+                    - gaa
+                    - ee
+                    - fat
+                    - dag
+                    - pcm
+                tags:
+                  type: array
+                  items:
+                    type: string
+                enabled:
+                  type: boolean
+              required:
+                - question
+                - answer
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Faq"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/faqs/{id}:
+    put:
+      tags:
+        - Business
+      summary: Edit an FAQ entry
+      operationId: put_v1_faqs__id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      x-planned: true
+      x-priority: P0
+      security:
+        - sessionAuth: []
+      x-min-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                answer:
+                  type: string
+                language:
+                  type: string
+                  enum:
+                    - en
+                    - tw
+                    - gaa
+                    - ee
+                    - fat
+                    - dag
+                    - pcm
+                tags:
+                  type: array
+                  items:
+                    type: string
+                enabled:
+                  type: boolean
+              required: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Faq"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - Business
+      summary: Delete an FAQ entry
+      operationId: delete_v1_faqs__id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      x-planned: true
+      x-priority: P0
+      security:
+        - sessionAuth: []
+      x-min-role: admin
+      responses:
+        "204":
+          description: No content
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/faqs/import:
+    post:
+      tags:
+        - Business
+      summary: Import FAQ from CSV (columns question, answer, language, tags)
+      operationId: post_v1_faqs_import
+      x-planned: true
+      x-priority: P1
+      security:
+        - sessionAuth: []
+      x-min-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filename:
+                  type: string
+                contentBase64:
+                  type: string
+              required:
+                - filename
+                - contentBase64
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FaqImportResult"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/knowledge/sites:
+    get:
+      tags:
+        - Business
+      summary: Websites indexed for answers
+      operationId: get_v1_knowledge_sites
+      x-planned: true
+      x-priority: P1
+      security:
+        - sessionAuth: []
+      x-min-role: agent
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/KnowledgeSite"
+                required:
+                  - data
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - Business
+      summary: Index a website (SSRF-safe crawler, capped pages and size)
+      operationId: post_v1_knowledge_sites
+      x-planned: true
+      x-priority: P1
+      security:
+        - sessionAuth: []
+      x-min-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+              required:
+                - url
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeSite"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/knowledge/sites/{id}/reindex:
+    post:
+      tags:
+        - Business
+      summary: Re-crawl a website
+      operationId: post_v1_knowledge_sites__id_reindex
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      x-planned: true
+      x-priority: P1
+      security:
+        - sessionAuth: []
+      x-min-role: admin
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeSite"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/knowledge/sites/{id}:
+    delete:
+      tags:
+        - Business
+      summary: Remove an indexed website
+      operationId: delete_v1_knowledge_sites__id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      x-planned: true
+      x-priority: P1
+      security:
+        - sessionAuth: []
+      x-min-role: admin
+      responses:
+        "204":
+          description: No content
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/playbooks:
+    get:
+      tags:
+        - Playbooks
+      summary: "Error playbooks: error code to customer wording and owner"
+      operationId: get_v1_playbooks
+      x-planned: true
+      x-priority: P1
+      security:
+        - sessionAuth: []
+      x-min-role: agent
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Playbook"
+                required:
+                  - data
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - Playbooks
+      summary: Create a playbook
+      operationId: post_v1_playbooks
+      x-planned: true
+      x-priority: P1
+      security:
+        - sessionAuth: []
+      x-min-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                errorCode:
+                  type: string
+                pathPattern:
+                  type:
+                    - string
+                    - "null"
+                title:
+                  type: string
+                customerWording:
+                  type: string
+                internalNote:
+                  type:
+                    - string
+                    - "null"
+                ownerTeam:
+                  type:
+                    - string
+                    - "null"
+                severity:
+                  type: string
+                  enum:
+                    - low
+                    - normal
+                    - high
+                alwaysHandoff:
+                  type: boolean
+                enabled:
+                  type: boolean
+              required:
+                - errorCode
+                - title
+                - customerWording
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Playbook"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/playbooks/{id}:
+    put:
+      tags:
+        - Playbooks
+      summary: Edit a playbook
+      operationId: put_v1_playbooks__id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      x-planned: true
+      x-priority: P1
+      security:
+        - sessionAuth: []
+      x-min-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                errorCode:
+                  type: string
+                pathPattern:
+                  type:
+                    - string
+                    - "null"
+                title:
+                  type: string
+                customerWording:
+                  type: string
+                internalNote:
+                  type:
+                    - string
+                    - "null"
+                ownerTeam:
+                  type:
+                    - string
+                    - "null"
+                severity:
+                  type: string
+                  enum:
+                    - low
+                    - normal
+                    - high
+                alwaysHandoff:
+                  type: boolean
+                enabled:
+                  type: boolean
+              required: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Playbook"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - Playbooks
+      summary: Delete a playbook
+      operationId: delete_v1_playbooks__id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      x-planned: true
+      x-priority: P1
+      security:
+        - sessionAuth: []
+      x-min-role: admin
+      responses:
+        "204":
+          description: No content
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/playbooks/suggestions:
+    get:
+      tags:
+        - Playbooks
+      summary: Error codes seen in evidence that have no playbook yet
+      operationId: get_v1_playbooks_suggestions
+      x-planned: true
+      x-priority: P1
+      security:
+        - sessionAuth: []
+      x-min-role: agent
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PlaybookSuggestion"
+                required:
+                  - data
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/handoff-rules:
+    get:
+      tags:
+        - Business
+      summary: When the AI must hand over to a person
+      operationId: get_v1_handoff_rules
+      x-planned: true
+      x-priority: P1
+      security:
+        - sessionAuth: []
+      x-min-role: agent
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HandoffRules"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      tags:
+        - Business
+      summary: Replace handoff rules
+      operationId: put_v1_handoff_rules
+      x-planned: true
+      x-priority: P1
+      security:
+        - sessionAuth: []
+      x-min-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HandoffRules"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HandoffRules"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/knowledge-gaps:
+    get:
+      tags:
+        - Quality
+      summary: Questions the AI could not answer, clustered
+      operationId: get_v1_knowledge_gaps
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+      x-planned: true
+      x-priority: P1
+      security:
+        - sessionAuth: []
+      x-min-role: agent
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/KnowledgeGap"
+                  nextCursor:
+                    type:
+                      - string
+                      - "null"
+                required:
+                  - data
+                  - nextCursor
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/knowledge-gaps/{id}/resolve:
+    post:
+      tags:
+        - Quality
+      summary: Close a gap, optionally creating an FAQ from it
+      operationId: post_v1_knowledge_gaps__id_resolve
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      x-planned: true
+      x-priority: P1
+      security:
+        - sessionAuth: []
+      x-min-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                faqId:
+                  type: string
+                faq:
+                  type: object
+                  properties:
+                    question:
+                      type: string
+                    answer:
+                      type: string
+                  required:
+                    - question
+                    - answer
+              required: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeGap"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/knowledge-gaps/{id}/dismiss:
+    post:
+      tags:
+        - Quality
+      summary: Dismiss a gap
+      operationId: post_v1_knowledge_gaps__id_dismiss
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      x-planned: true
+      x-priority: P1
+      security:
+        - sessionAuth: []
+      x-min-role: admin
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeGap"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/messages/{id}/feedback:
+    post:
+      tags:
+        - Quality
+      summary: Rate an AI reply (good or bad, with a reason)
+      operationId: post_v1_messages__id_feedback
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      x-planned: true
+      x-priority: P1
+      security:
+        - sessionAuth: []
+      x-min-role: agent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rating:
+                  type: string
+                  enum:
+                    - good
+                    - bad
+                reason:
+                  type: string
+                  enum:
+                    - wrong
+                    - unclear
+                    - translation
+                    - tone
+                    - other
+                note:
+                  type: string
+              required:
+                - rating
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                required:
+                  - ok
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/analytics/quality:
+    get:
+      tags:
+        - Quality
+      summary: AI quality summary
+      operationId: get_v1_analytics_quality
+      parameters:
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+      x-planned: true
+      x-priority: P1
+      security:
+        - sessionAuth: []
+      x-min-role: agent
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QualitySummary"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/issues:
+    get:
+      tags:
+        - Issues
+      summary: Root causes grouped across customers
+      operationId: get_v1_issues
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+      x-planned: true
+      x-priority: P1
+      security:
+        - sessionAuth: []
+      x-min-role: agent
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Issue"
+                  nextCursor:
+                    type:
+                      - string
+                      - "null"
+                required:
+                  - data
+                  - nextCursor
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/issues/{id}:
+    get:
+      tags:
+        - Issues
+      summary: One issue with sample evidence and notes
+      operationId: get_v1_issues__id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      x-planned: true
+      x-priority: P1
+      security:
+        - sessionAuth: []
+      x-min-role: agent
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IssueDetail"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      tags:
+        - Issues
+      summary: Update status or assignee
+      operationId: patch_v1_issues__id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      x-planned: true
+      x-priority: P1
+      security:
+        - sessionAuth: []
+      x-min-role: agent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - open
+                    - investigating
+                    - fixed
+                    - wont_fix
+                assigneeId:
+                  type:
+                    - string
+                    - "null"
+              required: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Issue"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/issues/{id}/notify-fixed:
+    post:
+      tags:
+        - Issues
+      summary: Tell affected customers it is fixed (dryRun counts first)
+      operationId: post_v1_issues__id_notify_fixed
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      x-planned: true
+      x-priority: P2
+      security:
+        - sessionAuth: []
+      x-min-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                dryRun:
+                  type: boolean
+              required:
+                - dryRun
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotifyFixedResult"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/issues/{id}/export:
+    get:
+      tags:
+        - Issues
+      summary: Issue as GitHub issue Markdown
+      operationId: get_v1_issues__id_export
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      x-planned: true
+      x-priority: P1
+      security:
+        - sessionAuth: []
+      x-min-role: agent
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  title:
+                    type: string
+                  body:
+                    type: string
+                required:
+                  - title
+                  - body
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/customers:
+    get:
+      tags:
+        - Customers
+      summary: Customers who have contacted support
+      operationId: get_v1_customers
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+      x-planned: true
+      x-priority: P2
+      security:
+        - sessionAuth: []
+      x-min-role: agent
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Customer"
+                  nextCursor:
+                    type:
+                      - string
+                      - "null"
+                required:
+                  - data
+                  - nextCursor
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/customers/{userId}:
+    get:
+      tags:
+        - Customers
+      summary: One customer's conversations and tickets
+      operationId: get_v1_customers__userId
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      x-planned: true
+      x-priority: P2
+      security:
+        - sessionAuth: []
+      x-min-role: agent
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerDetail"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/inbox/counts:
+    get:
+      tags:
+        - Conversations
+      summary: Counts for the inbox tabs
+      operationId: get_v1_inbox_counts
+      x-planned: true
+      x-priority: P0
+      security:
+        - sessionAuth: []
+      x-min-role: agent
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InboxCounts"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/channels:
+    get:
+      tags:
+        - Channels
+      summary: Connected channels (ChatFlow properties)
+      operationId: get_v1_channels
+      x-planned: true
+      x-priority: P0
+      security:
+        - sessionAuth: []
+      x-min-role: admin
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Channel"
+                required:
+                  - data
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - Channels
+      summary: Connect a ChatFlow property; returns the relay key once
+      operationId: post_v1_channels
+      x-planned: true
+      x-priority: P0
+      security:
+        - sessionAuth: []
+      x-min-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                kind:
+                  type: string
+                  enum:
+                    - chatflow
+                label:
+                  type: string
+                externalId:
+                  type: string
+              required:
+                - kind
+                - label
+                - externalId
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChannelCreated"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/channels/{id}:
+    delete:
+      tags:
+        - Channels
+      summary: Disconnect a channel and revoke its key
+      operationId: delete_v1_channels__id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      x-planned: true
+      x-priority: P0
+      security:
+        - sessionAuth: []
+      x-min-role: admin
+      responses:
+        "204":
+          description: No content
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/channels/{id}/rotate-key:
+    post:
+      tags:
+        - Channels
+      summary: Issue a new relay key (old one stops working)
+      operationId: post_v1_channels__id_rotate_key
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      x-planned: true
+      x-priority: P0
+      security:
+        - sessionAuth: []
+      x-min-role: admin
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  relayKey:
+                    type: string
+                  keyPrefix:
+                    type: string
+                required:
+                  - relayKey
+                  - keyPrefix
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/channels/{id}/test:
+    post:
+      tags:
+        - Channels
+      summary: Check the channel has called Helply and the key is valid
+      operationId: post_v1_channels__id_test
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      x-planned: true
+      x-priority: P0
+      security:
+        - sessionAuth: []
+      x-min-role: admin
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChannelTest"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/relay/message:
+    post:
+      tags:
+        - Relay
+      summary: ChatFlow server relays a visitor message and gets the AI reply
+      operationId: post_v1_relay_message
+      x-planned: true
+      x-priority: P0
+      security:
+        - relayAuth: []
+      x-min-role: relay
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                externalConversationId:
+                  type: string
+                externalVisitorId:
+                  type: string
+                message:
+                  type: string
+                identityToken:
+                  type: string
+                languageHint:
+                  type: string
+                  enum:
+                    - en
+                    - tw
+                    - gaa
+                    - ee
+                    - fat
+                    - dag
+                    - pcm
+                agentOnline:
+                  type: boolean
+              required:
+                - externalConversationId
+                - externalVisitorId
+                - message
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RelayReply"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/relay/events:
+    post:
+      tags:
+        - Relay
+      summary: ChatFlow tells Helply what happened in its inbox
+      operationId: post_v1_relay_events
+      x-planned: true
+      x-priority: P0
+      security:
+        - relayAuth: []
+      x-min-role: relay
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                externalConversationId:
+                  type: string
+                type:
+                  type: string
+                  enum:
+                    - agent_joined
+                    - agent_left
+                    - agent_message
+                    - conversation_closed
+                    - conversation_reopened
+                text:
+                  type: string
+                at:
+                  type: string
+              required:
+                - externalConversationId
+                - type
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                required:
+                  - ok
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/relay/identify:
+    post:
+      tags:
+        - Relay
+      summary: Refresh a visitor's verified identity when the widget gets a new token
+      operationId: post_v1_relay_identify
+      x-planned: true
+      x-priority: P0
+      security:
+        - relayAuth: []
+      x-min-role: relay
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                externalVisitorId:
+                  type: string
+                identityToken:
+                  type: string
+              required:
+                - externalVisitorId
+                - identityToken
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  verified:
+                    type: boolean
+                  expiresAt:
+                    type:
+                      - string
+                      - "null"
+                required:
+                  - verified
+                  - expiresAt
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/relay/config:
+    get:
+      tags:
+        - Relay
+      summary: What ChatFlow needs to know before relaying
+      operationId: get_v1_relay_config
+      x-planned: true
+      x-priority: P0
+      security:
+        - relayAuth: []
+      x-min-role: relay
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RelayConfig"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/identity/key:
+    get:
+      tags:
+        - Connections
+      summary: Customer-token verification mode and public key
+      operationId: get_v1_identity_key
+      x-planned: true
+      x-priority: P1
+      security:
+        - sessionAuth: []
+      x-min-role: admin
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentityKey"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      tags:
+        - Connections
+      summary: Switch to public-key verification (RS256/ES256, PEM or JWKS URL)
+      operationId: put_v1_identity_key
+      x-planned: true
+      x-priority: P1
+      security:
+        - sessionAuth: []
+      x-min-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                alg:
+                  type: string
+                  enum:
+                    - RS256
+                    - ES256
+                publicKeyPem:
+                  type:
+                    - string
+                    - "null"
+                jwksUrl:
+                  type:
+                    - string
+                    - "null"
+                kid:
+                  type:
+                    - string
+                    - "null"
+              required:
+                - alg
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentityKey"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/auth/forgot-password:
+    post:
+      tags:
+        - Auth
+      summary: Email a reset link (always 202, never reveals if the email exists)
+      operationId: post_v1_auth_forgot_password
+      x-planned: true
+      x-priority: P1
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+              required:
+                - email
+      responses:
+        "202":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                required:
+                  - ok
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/auth/reset-password:
+    post:
+      tags:
+        - Auth
+      summary: Set a new password with the emailed token
+      operationId: post_v1_auth_reset_password
+      x-planned: true
+      x-priority: P1
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                password:
+                  type: string
+              required:
+                - token
+                - password
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                required:
+                  - ok
         default:
           description: Error
           content:
@@ -2837,6 +5299,10 @@ components:
       type: http
       scheme: bearer
       description: hk_live_... workspace API key; scopes limit what it can reach.
+    relayAuth:
+      type: http
+      scheme: bearer
+      description: hr_live_... channel relay key, held by a connected ChatFlow server (PLANNED).
     consoleKey:
       type: apiKey
       in: header
@@ -3957,3 +6423,757 @@ components:
         - model
         - capabilities
         - languages
+    OnboardingStep:
+      type: object
+      properties:
+        id:
+          type: string
+          enum:
+            - workspace
+            - logs_shipped
+            - log_source
+            - identity
+            - business_profile
+            - knowledge
+            - channel
+            - test
+            - live
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum:
+            - done
+            - todo
+            - their_side
+            - blocked
+        detail:
+          type:
+            - string
+            - "null"
+        actionPath:
+          type:
+            - string
+            - "null"
+      required:
+        - id
+        - title
+        - description
+        - status
+        - detail
+        - actionPath
+    Onboarding:
+      type: object
+      properties:
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/OnboardingStep"
+        completed:
+          type: integer
+        total:
+          type: integer
+        readyForLive:
+          type: boolean
+        live:
+          type: boolean
+      required:
+        - steps
+        - completed
+        - total
+        - readyForLive
+        - live
+    BusinessProfile:
+      type: object
+      properties:
+        name:
+          type: string
+        about:
+          type: string
+        website:
+          type:
+            - string
+            - "null"
+        hours:
+          type:
+            - string
+            - "null"
+        timezone:
+          type: string
+        contactEmail:
+          type:
+            - string
+            - "null"
+        contactPhone:
+          type:
+            - string
+            - "null"
+        languages:
+          type: array
+          items:
+            type: string
+            enum:
+              - en
+              - tw
+              - gaa
+              - ee
+              - fat
+              - dag
+              - pcm
+        tone:
+          type: string
+          enum:
+            - friendly
+            - formal
+            - concise
+        escalation:
+          type: object
+          properties:
+            email:
+              type:
+                - string
+                - "null"
+            phone:
+              type:
+                - string
+                - "null"
+            whatsapp:
+              type:
+                - string
+                - "null"
+          required:
+            - email
+            - phone
+            - whatsapp
+        updatedAt:
+          type:
+            - string
+            - "null"
+      required:
+        - name
+        - about
+        - timezone
+        - languages
+        - tone
+        - escalation
+    Faq:
+      type: object
+      properties:
+        id:
+          type: string
+        question:
+          type: string
+        answer:
+          type: string
+        language:
+          type: string
+          enum:
+            - en
+            - tw
+            - gaa
+            - ee
+            - fat
+            - dag
+            - pcm
+        tags:
+          type: array
+          items:
+            type: string
+        enabled:
+          type: boolean
+        source:
+          type: string
+          enum:
+            - manual
+            - import
+            - gap
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - question
+        - answer
+        - language
+        - tags
+        - enabled
+        - source
+        - createdAt
+        - updatedAt
+    FaqImportResult:
+      type: object
+      properties:
+        created:
+          type: integer
+        skipped:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              row:
+                type: integer
+              message:
+                type: string
+            required:
+              - row
+              - message
+      required:
+        - created
+        - skipped
+        - errors
+    KnowledgeSite:
+      type: object
+      properties:
+        id:
+          type: string
+        url:
+          type: string
+        status:
+          type: string
+          enum:
+            - queued
+            - crawling
+            - ready
+            - failed
+        pages:
+          type: integer
+        lastIndexedAt:
+          type:
+            - string
+            - "null"
+        error:
+          type:
+            - string
+            - "null"
+      required:
+        - id
+        - url
+        - status
+        - pages
+        - lastIndexedAt
+        - error
+    Playbook:
+      type: object
+      properties:
+        id:
+          type: string
+        errorCode:
+          type: string
+        pathPattern:
+          type:
+            - string
+            - "null"
+        title:
+          type: string
+        customerWording:
+          type: string
+        internalNote:
+          type:
+            - string
+            - "null"
+        ownerTeam:
+          type:
+            - string
+            - "null"
+        severity:
+          type: string
+          enum:
+            - low
+            - normal
+            - high
+        alwaysHandoff:
+          type: boolean
+        enabled:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - errorCode
+        - pathPattern
+        - title
+        - customerWording
+        - internalNote
+        - ownerTeam
+        - severity
+        - alwaysHandoff
+        - enabled
+        - createdAt
+        - updatedAt
+    PlaybookSuggestion:
+      type: object
+      properties:
+        errorCode:
+          type: string
+        count:
+          type: integer
+        lastSeen:
+          type: string
+        sampleTicketIds:
+          type: array
+          items:
+            type: string
+      required:
+        - errorCode
+        - count
+        - lastSeen
+        - sampleTicketIds
+    HandoffRules:
+      type: object
+      properties:
+        alwaysHandoffIntents:
+          type: array
+          items:
+            type: string
+            enum:
+              - human_request
+              - account_issue
+        keywords:
+          type: array
+          items:
+            type: string
+        minConfidence:
+          type: number
+        outsideHours:
+          type: string
+          enum:
+            - ai_only
+            - handoff
+            - ai_and_notify
+        notifyEmail:
+          type:
+            - string
+            - "null"
+      required:
+        - alwaysHandoffIntents
+        - keywords
+        - minConfidence
+        - outsideHours
+        - notifyEmail
+    KnowledgeGap:
+      type: object
+      properties:
+        id:
+          type: string
+        question:
+          type: string
+        count:
+          type: integer
+        language:
+          type: string
+          enum:
+            - en
+            - tw
+            - gaa
+            - ee
+            - fat
+            - dag
+            - pcm
+        firstSeen:
+          type: string
+        lastSeen:
+          type: string
+        status:
+          type: string
+          enum:
+            - open
+            - resolved
+            - dismissed
+        sampleConversationIds:
+          type: array
+          items:
+            type: string
+      required:
+        - id
+        - question
+        - count
+        - language
+        - firstSeen
+        - lastSeen
+        - status
+        - sampleConversationIds
+    Issue:
+      type: object
+      properties:
+        id:
+          type: string
+        summary:
+          type: string
+        suggestedFix:
+          type:
+            - string
+            - "null"
+        status:
+          type: string
+          enum:
+            - open
+            - investigating
+            - fixed
+            - wont_fix
+        severity:
+          type: string
+          enum:
+            - low
+            - normal
+            - high
+        count:
+          type: integer
+        affectedCustomers:
+          type: integer
+        firstSeen:
+          type: string
+        lastSeen:
+          type: string
+        assigneeId:
+          type:
+            - string
+            - "null"
+        ticketIds:
+          type: array
+          items:
+            type: string
+        fixedAt:
+          type:
+            - string
+            - "null"
+      required:
+        - id
+        - summary
+        - suggestedFix
+        - status
+        - severity
+        - count
+        - affectedCustomers
+        - firstSeen
+        - lastSeen
+        - assigneeId
+        - ticketIds
+        - fixedAt
+    IssueDetail:
+      allOf:
+        - $ref: "#/components/schemas/Issue"
+        - type: object
+          properties:
+            evidence:
+              type: array
+              items:
+                $ref: "#/components/schemas/LogLine"
+            notes:
+              type: array
+              items:
+                $ref: "#/components/schemas/Note"
+          required:
+            - evidence
+            - notes
+    NotifyFixedResult:
+      type: object
+      properties:
+        dryRun:
+          type: boolean
+        affectedCustomers:
+          type: integer
+        notified:
+          type: integer
+        skipped:
+          type: integer
+      required:
+        - dryRun
+        - affectedCustomers
+        - notified
+        - skipped
+    Customer:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type:
+            - string
+            - "null"
+        conversations:
+          type: integer
+        tickets:
+          type: integer
+        firstSeen:
+          type: string
+        lastSeen:
+          type: string
+        languages:
+          type: array
+          items:
+            type: string
+            enum:
+              - en
+              - tw
+              - gaa
+              - ee
+              - fat
+              - dag
+              - pcm
+      required:
+        - id
+        - name
+        - conversations
+        - tickets
+        - firstSeen
+        - lastSeen
+        - languages
+    CustomerDetail:
+      allOf:
+        - $ref: "#/components/schemas/Customer"
+        - type: object
+          properties:
+            conversationIds:
+              type: array
+              items:
+                type: string
+            ticketIds:
+              type: array
+              items:
+                type: string
+          required:
+            - conversationIds
+            - ticketIds
+    Channel:
+      type: object
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          enum:
+            - chatflow
+        label:
+          type: string
+        externalId:
+          type: string
+        status:
+          type: string
+          enum:
+            - pending
+            - connected
+            - error
+        lastSeenAt:
+          type:
+            - string
+            - "null"
+        keyPrefix:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - kind
+        - label
+        - externalId
+        - status
+        - lastSeenAt
+        - keyPrefix
+        - createdAt
+    ChannelCreated:
+      allOf:
+        - $ref: "#/components/schemas/Channel"
+        - type: object
+          properties:
+            relayKey:
+              type: string
+          required:
+            - relayKey
+    ChannelTest:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        issues:
+          type: array
+          items:
+            type: object
+            properties:
+              code:
+                type: string
+              message:
+                type: string
+            required:
+              - code
+              - message
+      required:
+        - ok
+        - issues
+    RelayReply:
+      type: object
+      properties:
+        conversationId:
+          type: string
+        reply:
+          oneOf:
+            - type: "null"
+            - type: object
+              properties:
+                text:
+                  type: string
+                english:
+                  type: string
+                language:
+                  type: string
+                  enum:
+                    - en
+                    - tw
+                    - gaa
+                    - ee
+                    - fat
+                    - dag
+                    - pcm
+              required:
+                - text
+                - english
+                - language
+        handledBy:
+          type: string
+          enum:
+            - ai
+            - none
+        needsHuman:
+          type: boolean
+        verified:
+          type: boolean
+        requiresAuth:
+          type: boolean
+        ticketId:
+          type:
+            - string
+            - "null"
+        held:
+          type: boolean
+        suppressed:
+          oneOf:
+            - type: "null"
+            - type: string
+              enum:
+                - agent_online
+                - human_taken_over
+                - ai_paused
+                - cap_reached
+                - outside_hours
+      required:
+        - conversationId
+        - reply
+        - handledBy
+        - needsHuman
+        - verified
+        - requiresAuth
+        - ticketId
+        - held
+        - suppressed
+    RelayConfig:
+      type: object
+      properties:
+        aiEnabled:
+          type: boolean
+        fallbackMessage:
+          type: string
+        languages:
+          type: array
+          items:
+            type: string
+            enum:
+              - en
+              - tw
+              - gaa
+              - ee
+              - fat
+              - dag
+              - pcm
+      required:
+        - aiEnabled
+        - fallbackMessage
+        - languages
+    IdentityKey:
+      type: object
+      properties:
+        mode:
+          type: string
+          enum:
+            - shared_secret
+            - public_key
+        alg:
+          type: string
+          enum:
+            - HS256
+            - RS256
+            - ES256
+        kid:
+          type:
+            - string
+            - "null"
+        publicKeyPem:
+          type:
+            - string
+            - "null"
+        jwksUrl:
+          type:
+            - string
+            - "null"
+      required:
+        - mode
+        - alg
+        - kid
+        - publicKeyPem
+        - jwksUrl
+    QualitySummary:
+      type: object
+      properties:
+        ratedReplies:
+          type: integer
+        goodRate:
+          type: number
+        answeredFromKnowledge:
+          type: number
+        answeredFromLogs:
+          type: number
+        flaggedTranslations:
+          type: integer
+        handoffReasons:
+          type: array
+          items:
+            type: object
+            properties:
+              reason:
+                type: string
+              count:
+                type: integer
+            required:
+              - reason
+              - count
+      required:
+        - ratedReplies
+        - goodRate
+        - answeredFromKnowledge
+        - answeredFromLogs
+        - flaggedTranslations
+        - handoffReasons
+    InboxCounts:
+      type: object
+      properties:
+        needsHuman:
+          type: integer
+        mine:
+          type: integer
+        unassigned:
+          type: integer
+        aiActive:
+          type: integer
+        resolvedToday:
+          type: integer
+      required:
+        - needsHuman
+        - mine
+        - unassigned
+        - aiActive
+        - resolvedToday

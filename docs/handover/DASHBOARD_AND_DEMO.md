@@ -3,6 +3,8 @@
 **You own:** `/demo` (`web/src/pages/Demo.tsx`, `web/src/components/ChatWindow.tsx`, `web/src/hooks/useChat.ts`) and `/app/*` (`web/src/app/*`), plus shared components in `web/src/components/` (coordinate with the landing-page owner: `ui.tsx` is shared; brand tokens live in `web/src/styles/index.css`).
 **API:** `docs/openapi.yaml` (spec of record), `docs/API_CONTRACT.md` (narrative + types). `web/src/types.ts` mirrors the spec by hand; if you change a type, check the spec first.
 
+> **Next work is specified in [`../ADMIN_DASHBOARD_SPEC.md`](../ADMIN_DASHBOARD_SPEC.md)** (workflows, new pages, delivery order) against the planned routes in [`../API_V1_2_PLAN.md`](../API_V1_2_PLAN.md). `npm run dev:mock` serves fixtures for those routes.
+
 ## Run it
 `npm run dev:mock` at the repo root, then `cd web && npm run dev`. Log in at `/app/login` (button "Sign in as the demo owner", or `agent@kwikpay.demo` / `helply-demo-pass` to see the agent role). Use `/demo` as Ama (signed in) to create conversations and tickets that then show up in the dashboard. API errors always look like `{ error: { code, message }, requestId }`; `web/src/api.ts` turns them into `ApiError`.
 

@@ -39,4 +39,9 @@ const fetchImpl = async (url, init) => {
 };
 const config = load({ DEMO_MODE: "true", HELPLY_JWT_SECRET: "dev-secret-dev-secret-dev-secret-1234", CLS_BASE_URL: "http://cls.test", CLS_API_KEY: "k", CORS_ORIGIN: "*", ALLOW_PRIVATE_LOG_SOURCES: "true", ALLOW_INSECURE_WEBHOOKS: "true", PORT: "8787" });
 const app = buildApp(config, { llm, language, fetchImpl });
-app.locals.ready.then(() => app.listen(8787, () => console.log("dev api on 8787")));
+// PLANNED routes (docs/openapi.yaml x-planned) answer with fixtures so the dashboard can be built ahead of the backend.
+const express = require("express");
+const outer = express();
+outer.use("/", require("./planned-mock-router").createPlannedMock());
+outer.use("/", app);
+app.locals.ready.then(() => outer.listen(8787, () => console.log("dev api on 8787 (real routes + fixtures for planned routes)")));
