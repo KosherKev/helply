@@ -126,5 +126,5 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
     - source maps
   - Result: Lighthouse went from 73/93/96/100 to 93–94/100/100/100.
 - **Deliberately not done:** touching `src/`, `web/`, `web/src/app/*` or `Demo.tsx`; a `/docs` page; generated imagery; changing the four promises; merging.
-- **Commit:** `COMMIT_PENDING` on branch `landing-page`.
+- **Commit:** `330a83e` on branch `landing-page`.
 
