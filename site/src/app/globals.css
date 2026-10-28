@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+/*
+ * Emotion-style UI in Helply colours. Ice Blue replaces Emotion's lavender page, Helply Blue
+ * replaces its violet accent, Deep Navy is the ink. Sky Blue is for glows and focus, never text.
+ */
+@theme {
+  --color-navy: #0F172A;
+  --color-blue: #2563EB;
+  --color-sky: #60A5FA;
+  --color-ice: #EFF6FF;
+  --color-slate: #DBEAFE;
+  --color-white: #FFFFFF;
+  --color-mute: #4B5569;   /* secondary ink on Ice Blue, 7:1 */
+  --color-faint: #94A3B8;  /* decorative only (inactive list items), never body text */
+
+  --font-serif: "Instrument Serif", "Times New Roman", serif;
+  --font-sans: "Plus Jakarta Sans", Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html { color: var(--color-navy); background: var(--color-navy); -webkit-font-smoothing: antialiased; }
+body { font-family: var(--font-sans); font-weight: 500; font-size: 16px; line-height: 1.5; overflow-x: clip; }
+p { text-wrap: pretty; }
+
+:focus-visible { outline: 3px solid var(--color-sky); outline-offset: 3px; border-radius: 6px; }
+
+.wrap { width: 100%; padding-inline: 16px; }
+@media (min-width: 768px) { .wrap { padding-inline: 32px; } }
+
+/* Display: condensed serif in capitals, with an italic lower-case lead word. */
+.display { font-family: var(--font-serif); font-weight: 400; text-transform: uppercase; line-height: 0.9; letter-spacing: -0.005em; }
+.display em, .lead { font-family: var(--font-serif); font-style: italic; text-transform: none; letter-spacing: -0.01em; }
+
+/* Mono captions: capitals with wide word spacing. */
+.mono { font-family: var(--font-mono); font-weight: 500; font-size: 12px; line-height: 1.35; text-transform: uppercase; letter-spacing: 0.02em; word-spacing: 0.4em; }
+
+/* Solid pill tag above each section title. */
+.tag { display: inline-flex; align-items: center; border-radius: 999px; background: var(--color-blue); color: #fff; padding: 2px 9px; font-family: var(--font-mono); font-weight: 500; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; }
+
+/* Glass pill button with a slow-moving gradient inside (Emotion draws this on a canvas). */
+.pill {
+  position: relative; isolation: isolate; overflow: hidden;
+  display: inline-flex; align-items: center; gap: 10px;
+  height: 46px; padding: 0 22px; border-radius: 999px;
+  font-family: var(--font-sans); font-weight: 500; font-size: 15px; color: var(--color-navy);
+  border: 1px solid rgb(96 165 250 / 0.55);
+  background: rgb(239 246 255 / 0.65);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), inset 0 -8px 18px rgb(96 165 250 / 0.18);
+  backdrop-filter: blur(10px);
+  transition: border-color 0.3s, transform 0.5s var(--ease-out-expo);
+}
+.pill::before {
+  content: ""; position: absolute; inset: -40%; z-index: -1;
+  background:
+    radial-gradient(35% 60% at 20% 50%, rgb(96 165 250 / 0.55), transparent 70%),
+    radial-gradient(30% 55% at 75% 45%, rgb(37 99 235 / 0.35), transparent 70%),
+    radial-gradient(40% 70% at 50% 100%, rgb(255 255 255 / 0.9), transparent 70%);
+  animation: pill-flow 7s ease-in-out infinite alternate;
+}
+.pill:hover { border-color: var(--color-blue); }
+.pill-sm { height: 34px; padding: 0 16px; font-size: 13px; }
+@keyframes pill-flow { 0% { transform: translate(-12%, 0) rotate(0deg); } 100% { transform: translate(12%, 4%) rotate(20deg); } }
+
+/* Masks for line reveals. */
+.mask { display: block; overflow: hidden; padding-bottom: 0.06em; margin-bottom: -0.06em; }
+:where(.mask) > span { display: block; }
+
+/* Numbered list (001) */
+.idx { font-family: var(--font-mono); font-weight: 500; font-size: 12px; letter-spacing: 0.02em; }
+sup.count { font-family: var(--font-mono); font-size: 9px; font-weight: 500; vertical-align: super; margin-left: 4px; }
+
+.skip-link { position: absolute; left: 16px; top: -100px; z-index: 200; background: var(--color-blue); color: #fff; padding: 12px 16px; border-radius: 12px; font-weight: 600; }
+.skip-link:focus { top: 16px; }
+
+/* Lenis */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: clip; }
+
+/* Iridescent orb (AI assistant) */
+.orb {
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 30% 28%, #fff 0 12%, transparent 34%),
+    conic-gradient(from 0deg, #60A5FA, #FFFFFF, #2563EB, #DBEAFE, #93C5FD, #60A5FA);
+  box-shadow: inset 0 0 12px rgb(255 255 255 / 0.9), 0 6px 24px rgb(37 99 235 / 0.35);
+  animation: orb-spin 9s linear infinite;
+}
+@keyframes orb-spin { to { transform: rotate(360deg); } }
+
+/* Pixel "grid shift" glitch for gallery cards on entry */
+@keyframes grid-shift {
+  0% { clip-path: inset(0 0 100% 0); transform: translateX(0); filter: saturate(2) hue-rotate(-20deg); }
+  30% { clip-path: inset(0 0 55% 0); transform: translateX(-6px); }
+  45% { clip-path: inset(30% 0 20% 0); transform: translateX(8px); }
+  60% { clip-path: inset(0 0 10% 0); transform: translateX(-3px); filter: saturate(1.4) hue-rotate(10deg); }
+  100% { clip-path: inset(0 0 0 0); transform: translateX(0); filter: none; }
+}
+.glitch-in { animation: grid-shift 0.9s steps(6, end) both; }
+
+html[data-motion="off"] .pill::before, html[data-motion="off"] .orb { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
