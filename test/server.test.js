@@ -79,7 +79,8 @@ test("console endpoints require the console key outside demo mode", async () => 
 
   const closed = await start({ DEMO_MODE: "false" });
   try {
-    assert.equal((await json(closed.base, "/v1/tickets")).status, 503);
+    // v1.1: with no console key and no credential there is simply no access (401), not a 503.
+    assert.equal((await json(closed.base, "/v1/tickets")).status, 401);
   } finally { await closed.close(); }
 });
 
