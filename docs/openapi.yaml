@@ -2,7 +2,7 @@
 openapi: 3.1.0
 info:
   title: Helply API
-  version: 1.2.0-planned
+  version: 1.2.0
   license:
     name: MIT
     identifier: MIT
@@ -3417,8 +3417,6 @@ paths:
         - Business
       summary: Websites indexed for answers
       operationId: get_v1_knowledge_sites
-      x-planned: true
-      x-priority: P1
       security:
         - sessionAuth: []
       x-min-role: agent
@@ -3459,8 +3457,6 @@ paths:
         - Business
       summary: Index a website (SSRF-safe crawler, capped pages and size)
       operationId: post_v1_knowledge_sites
-      x-planned: true
-      x-priority: P1
       security:
         - sessionAuth: []
       x-min-role: admin
@@ -3512,8 +3508,6 @@ paths:
           required: true
           schema:
             type: string
-      x-planned: true
-      x-priority: P1
       security:
         - sessionAuth: []
       x-min-role: admin
@@ -3554,8 +3548,6 @@ paths:
           required: true
           schema:
             type: string
-      x-planned: true
-      x-priority: P1
       security:
         - sessionAuth: []
       x-min-role: admin
@@ -4363,7 +4355,7 @@ paths:
     post:
       tags:
         - Issues
-      summary: Tell affected customers it is fixed (dryRun counts first)
+      summary: Hand affected customers and your wording to your webhook (event issue.fixed); call with dryRun true first
       operationId: post_v1_issues__id_notify_fixed
       parameters:
         - name: id
@@ -4371,8 +4363,6 @@ paths:
           required: true
           schema:
             type: string
-      x-planned: true
-      x-priority: P2
       security:
         - sessionAuth: []
       x-min-role: admin
@@ -4484,8 +4474,6 @@ paths:
           required: false
           schema:
             type: string
-      x-planned: true
-      x-priority: P2
       security:
         - sessionAuth: []
       x-min-role: agent
@@ -4538,8 +4526,6 @@ paths:
           required: true
           schema:
             type: string
-      x-planned: true
-      x-priority: P2
       security:
         - sessionAuth: []
       x-min-role: agent
@@ -5045,8 +5031,39 @@ paths:
         - Connections
       summary: Customer-token verification mode and public key
       operationId: get_v1_identity_key
-      x-planned: true
-      x-priority: P1
+      security:
+        - sessionAuth: []
+      x-min-role: admin
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentityKey"
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - Connections
+      summary: Go back to shared-secret verification
+      operationId: delete_v1_identity_key
       security:
         - sessionAuth: []
       x-min-role: admin
@@ -5080,8 +5097,6 @@ paths:
         - Connections
       summary: Switch to public-key verification (RS256/ES256, PEM or JWKS URL)
       operationId: put_v1_identity_key
-      x-planned: true
-      x-priority: P1
       security:
         - sessionAuth: []
       x-min-role: admin
@@ -5142,8 +5157,6 @@ paths:
         - Auth
       summary: Email a reset link (always 202, never reveals if the email exists)
       operationId: post_v1_auth_forgot_password
-      x-planned: true
-      x-priority: P1
       security: []
       requestBody:
         required: true
@@ -5180,8 +5193,6 @@ paths:
         - Auth
       summary: Set a new password with the emailed token
       operationId: post_v1_auth_reset_password
-      x-planned: true
-      x-priority: P1
       security: []
       requestBody:
         required: true

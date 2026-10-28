@@ -26,9 +26,9 @@ const safeEqual = (a, b) => {
 };
 
 /** @returns {{ok:true, claims:{userId,name,tenant,exp}} | {ok:false, reason:string}} */
-const verify = (token, secret, { now = Date.now(), maxAgeSeconds = 900, visitorId } = {}) => {
+const verify = (token, secret, { now = Date.now(), maxAgeSeconds = 900, visitorId, publicKey, alg } = {}) => {
   const fail = (reason) => ({ ok: false, reason });
-  if (!secret) return fail("not_configured");
+  if (!secret && !publicKey) return fail("not_configured");
   if (typeof token !== "string" || token.length > 4096) return fail("malformed");
   const parts = token.split(".");
   if (parts.length !== 3) return fail("malformed");
@@ -41,9 +41,22 @@ const verify = (token, secret, { now = Date.now(), maxAgeSeconds = 900, visitorI
   } catch {
     return fail("malformed");
   }
-  if (!header || header.alg !== "HS256") return fail("bad_algorithm"); // rejects "none" and RS/ES swaps
-  const expected = crypto.createHmac("sha256", secret).update(`${parts[0]}.${parts[1]}`).digest("base64url");
-  if (!safeEqual(parts[2], expected)) return fail("bad_signature");
+  if (!header || typeof header.alg !== "string") return fail("bad_algorithm");
+  if (publicKey) {
+    // Public-key mode accepts ONLY the one configured asymmetric algorithm: never HS256 (key-confusion), never "none".
+    if (!["RS256", "ES256"].includes(alg) || header.alg !== alg) return fail("bad_algorithm");
+    let good = false;
+    try {
+      good = crypto.verify("sha256", Buffer.from(`${parts[0]}.${parts[1]}`), alg === "ES256" ? { key: publicKey, dsaEncoding: "ieee-p1363" } : publicKey, Buffer.from(parts[2], "base64url"));
+    } catch {
+      good = false;
+    }
+    if (!good) return fail("bad_signature");
+  } else {
+    if (header.alg !== "HS256") return fail("bad_algorithm"); // rejects "none" and RS/ES swaps
+    const expected = crypto.createHmac("sha256", secret).update(`${parts[0]}.${parts[1]}`).digest("base64url");
+    if (!safeEqual(parts[2], expected)) return fail("bad_signature");
+  }
 
   if (!claims || typeof claims !== "object") return fail("malformed");
   const nowS = Math.floor(now / 1000);

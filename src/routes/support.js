@@ -28,7 +28,7 @@ module.exports = (ctx) => {
       const tenant = decodeTenant(token);
       const w = tenant ? repo.findWorkspaceByIdOrSlug(tenant) : ctx.defaultEnabled ? repo.getWorkspace(ctx.defaultWorkspaceId) : null;
       if (w) {
-        const identity = verify(token, ctx.identitySecret(w), { maxAgeSeconds: config.tokenMaxAgeSeconds });
+        const identity = verify(token, ctx.identitySecret(w), { maxAgeSeconds: config.tokenMaxAgeSeconds, ...ctx.identityVerify(w) });
         if (identity.ok) return { workspace: w, identity };
       }
     }

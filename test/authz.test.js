@@ -5,7 +5,7 @@ const { boot, makeCls, logRow } = require("./_helpers");
 const { verify } = require("../src/identity/token");
 
 const fill = (path) => path.replace(/:\w+/g, "x");
-const PUBLIC = new Set(["GET /health", "GET /v1/config", "POST /v1/demo/token", "POST /v1/support/message", "POST /v1/support/voice", "GET /v1/support/conversations/:id/messages", "POST /v1/auth/register", "POST /v1/auth/login", "POST /v1/auth/accept-invite"]);
+const PUBLIC = new Set(["GET /health", "GET /v1/config", "POST /v1/demo/token", "POST /v1/support/message", "POST /v1/support/voice", "GET /v1/support/conversations/:id/messages", "POST /v1/auth/register", "POST /v1/auth/login", "POST /v1/auth/accept-invite", "POST /v1/auth/forgot-password", "POST /v1/auth/reset-password"]);
 
 test("every non-public route rejects a request with no credential (401), outside demo mode", async () => {
   const s = await boot();

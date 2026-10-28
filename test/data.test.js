@@ -7,7 +7,7 @@ const { openDb } = require("../src/db/db");
 test("schema: every tenant table carries workspace_id; audit events are immutable", () => {
   const db = openDb(":memory:");
   const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").all().map((r) => r.name);
-  const global = new Set(["schema_migrations", "users", "workspaces"]); // users are people; memberships tie them to workspaces
+  const global = new Set(["schema_migrations", "users", "workspaces", "password_resets"]); // password_resets belong to a user, who may be in several workspaces // users are people; memberships tie them to workspaces
   for (const t of tables.filter((n) => !global.has(n))) {
     const cols = db.prepare(`PRAGMA table_info(${t})`).all().map((c) => c.name);
     assert.ok(cols.includes("workspace_id"), `${t} must have workspace_id`);

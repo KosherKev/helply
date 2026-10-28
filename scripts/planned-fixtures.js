@@ -57,17 +57,6 @@ const supportResponse = {
 
 /** key = "METHOD /path/with/{params}" exactly as in docs/openapi.yaml; value = the 2xx response body (null for 204). */
 module.exports = {
-  "GET /v1/knowledge/sites": { data: [site] },
-  "POST /v1/knowledge/sites": { ...site, status: "queued", pages: 0, lastIndexedAt: null },
-  "POST /v1/knowledge/sites/{id}/reindex": { ...site, status: "crawling" },
-  "DELETE /v1/knowledge/sites/{id}": null,
-  "POST /v1/issues/{id}/notify-fixed": { dryRun: true, affectedCustomers: 9, notified: 0, skipped: 2 },
-  "GET /v1/customers": page([{ id: "usr_demo_ama", name: "Ama Mensah", conversations: 3, tickets: 2, firstSeen: T, lastSeen: T2, languages: ["en", "pcm"] }]),
-  "GET /v1/customers/{userId}": { id: "usr_demo_ama", name: "Ama Mensah", conversations: 3, tickets: 2, firstSeen: T, lastSeen: T2, languages: ["en", "pcm"], conversationIds: ["c_1", "c_2", "c_3"], ticketIds: ["T-0001", "T-0004"] },
-  "GET /v1/identity/key": { mode: "shared_secret", alg: "HS256", kid: null, publicKeyPem: null, jwksUrl: null },
-  "PUT /v1/identity/key": { mode: "public_key", alg: "RS256", kid: "2026-10", publicKeyPem: "-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----", jwksUrl: null },
-  "POST /v1/auth/forgot-password": { ok: true },
-  "POST /v1/auth/reset-password": { ok: true },
   // Relay variants the dashboard never calls but ChatFlow's developer will want to see.
   __relayVariants: {
     agentOnline: relayReply({ reply: null, handledBy: "none", suppressed: "agent_online", ticketId: null }),

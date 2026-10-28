@@ -9,6 +9,7 @@ const { validateWebhookUrl, isBlockedIp } = require("../webhooks/ssrf");
 const { EVENTS } = require("../webhooks/service");
 const { randomToken } = require("../security/crypto");
 const { createLimiter } = require("../auth/auth");
+const nodeCrypto = require("node:crypto");
 
 module.exports = (ctx) => {
   const { config, repo, vault, route, ah, auth, fetchImpl } = ctx;
@@ -139,11 +140,36 @@ module.exports = (ctx) => {
     if (visitorId !== undefined && (typeof visitorId !== "string" || !visitorId.trim() || visitorId.length > 128)) throw new HttpError(400, "invalid_visitor_id", "visitorId must be a non-empty string");
     if (typeof userId !== "string" || !userId.trim() || userId.length > 128) throw new HttpError(400, "invalid_user_id", "userId is required");
     const w = repo.getWorkspace(ctx.wsOf(req));
+    if (repo.getIdentityKey(w.id).mode === "public_key") throw new HttpError(409, "public_key_mode", "This workspace verifies tokens with your public key, so Helply cannot sign them. Sign tokens in your own backend.");
     const secret = ctx.identitySecret(w);
     if (!secret) throw new HttpError(503, "identity_not_configured", "This workspace has no identity secret");
     const token = sign({ sub: userId.trim(), name: typeof name === "string" ? name.slice(0, 80) : undefined, tenant: w.id, aud: "helply", ...(visitorId ? { vid: visitorId.trim() } : {}) }, secret, { ttlSeconds: config.tokenMaxAgeSeconds });
     ctx.audit(req, "identity_token_minted", { userId: userId.trim(), visitorBound: Boolean(visitorId) });
     res.json({ token, expiresIn: config.tokenMaxAgeSeconds });
+  });
+
+  route("get", "/v1/identity/key", guard({ role: "admin" }), (req, res) => {
+    userOnly(req);
+    res.json(repo.getIdentityKey(ctx.wsOf(req)));
+  });
+  route("put", "/v1/identity/key", guard({ role: "admin" }), (req, res) => {
+    userOnly(req);
+    const { alg, publicKeyPem, jwksUrl, kid } = req.body || {};
+    if (!["RS256", "ES256"].includes(alg)) throw new HttpError(400, "invalid_alg", "alg must be RS256 or ES256");
+    if (jwksUrl) throw new HttpError(400, "jwks_unsupported", "JWKS URLs are not supported yet: paste the public key as PEM");
+    if (typeof publicKeyPem !== "string" || publicKeyPem.length > 4000) throw new HttpError(400, "invalid_key", "Paste the public key in PEM format");
+    let key;
+    try { key = nodeCrypto.createPublicKey(publicKeyPem); } catch { throw new HttpError(400, "invalid_key", "That is not a valid PEM public key (it must start with -----BEGIN PUBLIC KEY-----)"); }
+    const ok = alg === "RS256" ? key.asymmetricKeyType === "rsa" && (key.asymmetricKeyDetails?.modulusLength || 0) >= 2048 : key.asymmetricKeyType === "ec" && key.asymmetricKeyDetails?.namedCurve === "prime256v1";
+    if (!ok) throw new HttpError(400, "invalid_key", alg === "RS256" ? "RS256 needs an RSA key of at least 2048 bits" : "ES256 needs a P-256 (prime256v1) key");
+    const out = repo.setIdentityKey(ctx.wsOf(req), { mode: "public_key", alg, kid: typeof kid === "string" && kid.trim() ? kid.trim().slice(0, 80) : null, publicKeyPem: key.export({ type: "spki", format: "pem" }) });
+    ctx.audit(req, "identity_key_changed", { mode: "public_key", alg });
+    res.json(out);
+  });
+  route("delete", "/v1/identity/key", guard({ role: "admin" }), (req, res) => {
+    userOnly(req);
+    ctx.audit(req, "identity_key_changed", { mode: "shared_secret" });
+    res.json(repo.setIdentityKey(ctx.wsOf(req), { mode: "shared_secret", alg: "HS256" }));
   });
 
   // ── webhooks ──────────────────────────────────────────────────────────

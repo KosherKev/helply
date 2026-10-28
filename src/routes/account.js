@@ -72,6 +72,32 @@ module.exports = (ctx) => {
     res.json({ user: { id: u.id, email: u.email, name: u.name }, role: req.principal.role, workspace: publicWorkspace(repo.getWorkspace(req.principal.workspaceId)) });
   });
 
+  route("post", "/v1/auth/forgot-password", authLimiter, ah(async (req, res) => {
+    const email = typeof req.body?.email === "string" ? req.body.email.trim() : "";
+    if (!EMAIL.test(email)) throw new HttpError(400, "invalid_email", "Enter a valid email");
+    const user = repo.getUserByEmail(email);
+    // Same answer whether or not the account exists. At most 3 links per hour per account.
+    if (user && repo.recentPasswordResets(user.id) < 3) {
+      const token = randomToken("hp_", 24);
+      repo.createPasswordReset(user.id, sha256(token), new Date(Date.now() + 3_600_000).toISOString());
+      const link = `${config.appUrl}/app/reset?token=${token}`;
+      const sent = await ctx.mailer.send({ to: user.email, subject: `Reset your ${config.brand} password`, text: `Someone asked to reset the password for this account.\n\nOpen this link within one hour to choose a new one:\n${link}\n\nIf this was not you, ignore this email and your password stays the same.` });
+      if (!sent.ok && config.demoMode) console.warn(`[helply] demo mode: email not sent (${sent.error}). Reset link: ${link}`);
+      else if (!sent.ok) console.warn(`[helply] password reset email not sent (${sent.error})`);
+    }
+    res.status(202).json({ ok: true });
+  }));
+
+  route("post", "/v1/auth/reset-password", authLimiter, ah(async (req, res) => {
+    const { token, password } = req.body || {};
+    if (typeof password !== "string" || password.length < 10 || password.length > 200) throw new HttpError(400, "weak_password", "Password must be at least 10 characters");
+    const r = typeof token === "string" ? repo.getPasswordReset(sha256(token)) : null;
+    if (!r) throw new HttpError(400, "invalid_token", "This reset link is invalid or has expired");
+    const workspaces = repo.completePasswordReset(r.id, r.user_id, await hashPassword(password));
+    for (const w of workspaces) repo.addAudit(w, { actorType: "user", actorId: r.user_id, action: "password_reset", detail: {} });
+    res.json({ ok: true });
+  }));
+
   route("post", "/v1/auth/accept-invite", authLimiter, ah(async (req, res) => {
     const { token, password, name } = req.body || {};
     const inv = typeof token === "string" ? repo.getInvitationByTokenHash(sha256(token)) : null;

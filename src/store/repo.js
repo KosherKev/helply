@@ -627,6 +627,60 @@ const createRepo = (db) => {
     };
   };
 
+  // ── identity key mode, customers, password resets, sites ──────────────
+  const getIdentityKey = (ws) => {
+    const r = q("SELECT identity_mode, identity_alg, identity_kid, identity_public_pem FROM workspaces WHERE id = ?").get(need(ws));
+    return { mode: r.identity_mode, alg: r.identity_alg, kid: r.identity_kid, publicKeyPem: r.identity_public_pem, jwksUrl: null };
+  };
+  const setIdentityKey = (ws, { mode, alg, kid = null, publicKeyPem = null }) => {
+    q("UPDATE workspaces SET identity_mode = ?, identity_alg = ?, identity_kid = ?, identity_public_pem = ? WHERE id = ?").run(mode, alg, kid, publicKeyPem, need(ws));
+    return getIdentityKey(ws);
+  };
+  const listCustomers = (ws, { q: text, limit, cursor } = {}) => {
+    const args = [need(ws)];
+    let filter = "";
+    if (text) { filter = "AND (customer_id LIKE ? ESCAPE '\\' OR customer_name LIKE ? ESCAPE '\\')"; args.push(like(text), like(text)); }
+    const lim = clampLimit(limit);
+    const off = Number(cursor) || 0;
+    const rows = q(
+      `SELECT customer_id AS id, MAX(customer_name) AS name, COUNT(*) AS conversations, MIN(created_at) AS first_seen, MAX(updated_at) AS last_seen, GROUP_CONCAT(DISTINCT language) AS languages,
+         (SELECT COUNT(*) FROM tickets t WHERE t.workspace_id = conversations.workspace_id AND t.user_id = conversations.customer_id AND t.is_test = 0) AS tickets
+       FROM conversations WHERE workspace_id = ? AND is_test = 0 AND customer_id IS NOT NULL ${filter} GROUP BY customer_id ORDER BY last_seen DESC LIMIT ? OFFSET ?`
+    ).all(...args, lim + 1, off);
+    const toC = (r) => ({ id: r.id, name: r.name, conversations: r.conversations, tickets: r.tickets, firstSeen: r.first_seen, lastSeen: r.last_seen, languages: String(r.languages || "en").split(",") });
+    return { data: rows.slice(0, lim).map(toC), nextCursor: rows.length > lim ? String(off + lim) : null };
+  };
+  const getCustomer = (ws, userId) => {
+    const one = listCustomers(ws, { q: userId, limit: 100 });
+    const c = one.data.find((x) => x.id === String(userId));
+    if (!c) return null;
+    return { ...c, conversationIds: q("SELECT id FROM conversations WHERE workspace_id = ? AND customer_id = ? AND is_test = 0 ORDER BY seq DESC LIMIT 100").all(ws, c.id).map((r) => r.id), ticketIds: q("SELECT id FROM tickets WHERE workspace_id = ? AND user_id = ? AND is_test = 0 ORDER BY seq DESC LIMIT 100").all(ws, c.id).map((r) => r.id) };
+  };
+  const issueCustomers = (ws, ticketIds) => {
+    const rows = ticketIds.map((id) => q("SELECT user_id FROM tickets WHERE workspace_id = ? AND id = ?").get(need(ws), id)).filter(Boolean);
+    return { customerIds: [...new Set(rows.map((r) => r.user_id).filter(Boolean))], withoutCustomer: rows.filter((r) => !r.user_id).length };
+  };
+  const createPasswordReset = (userId, tokenHash, expiresAt) => q("INSERT INTO password_resets (id, user_id, token_hash, expires_at, created_at) VALUES (?,?,?,?,?)").run(newId("pr"), userId, tokenHash, expiresAt, now());
+  const getPasswordReset = (tokenHash) => q("SELECT * FROM password_resets WHERE token_hash = ? AND used_at IS NULL AND expires_at > ?").get(tokenHash, now()) || null;
+  const recentPasswordResets = (userId) => q("SELECT COUNT(*) AS n FROM password_resets WHERE user_id = ? AND created_at > ?").get(userId, new Date(Date.now() - 3_600_000).toISOString()).n;
+  const completePasswordReset = (resetId, userId, passwordHash) => {
+    q("UPDATE password_resets SET used_at = ? WHERE id = ?").run(now(), resetId);
+    q("UPDATE users SET password_hash = ? WHERE id = ?").run(passwordHash, userId);
+    q("DELETE FROM sessions WHERE user_id = ?").run(userId); // every session of that user ends
+    return q("SELECT workspace_id FROM memberships WHERE user_id = ?").all(userId).map((r) => r.workspace_id);
+  };
+  const toSite = (r) => r && { id: r.id, url: r.url, status: r.status, pages: r.pages, lastIndexedAt: r.last_indexed_at, error: r.error };
+  const createSite = (ws, url) => { const id = newId("site"); q("INSERT INTO knowledge_sites (id, workspace_id, url, created_at) VALUES (?,?,?,?)").run(id, need(ws), url, now()); return getSite(ws, id); };
+  const getSite = (ws, id) => toSite(q("SELECT * FROM knowledge_sites WHERE workspace_id = ? AND id = ?").get(need(ws), String(id)));
+  const listSites = (ws) => q("SELECT * FROM knowledge_sites WHERE workspace_id = ? ORDER BY created_at").all(need(ws)).map(toSite);
+  const setSite = (ws, id, { status, pages, error = null, indexed = false }) =>
+    q("UPDATE knowledge_sites SET status = ?, pages = COALESCE(?, pages), error = ?, last_indexed_at = CASE WHEN ? THEN ? ELSE last_indexed_at END WHERE workspace_id = ? AND id = ?").run(status, pages ?? null, error, indexed ? 1 : 0, now(), need(ws), String(id));
+  const clearSiteDocs = (ws, id) => {
+    for (const d of q("SELECT id FROM knowledge_docs WHERE workspace_id = ? AND site_id = ?").all(need(ws), String(id))) deleteKnowledge(ws, d.id);
+  };
+  const addSiteDoc = (ws, siteId, { title, text }) => { const d = addKnowledge(ws, { title, text }); q("UPDATE knowledge_docs SET site_id = ? WHERE workspace_id = ? AND id = ?").run(siteId, ws, d.id); return d; };
+  const deleteSite = (ws, id) => { clearSiteDocs(ws, id); return q("DELETE FROM knowledge_sites WHERE workspace_id = ? AND id = ?").run(need(ws), String(id)).changes > 0; };
+
   // ── channels (ChatFlow) ───────────────────────────────────────────────
   const toChannel = (r) => r && { id: r.id, kind: r.kind, label: r.label, externalId: r.external_id, status: r.status, lastSeenAt: r.last_seen_at, keyPrefix: r.key_prefix, createdAt: r.created_at };
   const createChannel = (ws, { kind, label, externalId, keyHash, keyPrefix }) => {
@@ -742,6 +796,8 @@ const createRepo = (db) => {
     getBusinessProfile, putBusinessProfile, createFaq, getFaq, countFaqs, faqExists, listFaqs, updateFaq, deleteFaq, getOnboardingState, recordLogTest, recordCustomerTest, countKnowledgeDocs, hasVerifiedCustomerActivity,
     inboxCounts, listIssues, getIssue, updateIssue, getPlaybook, listPlaybooks, createPlaybook, updatePlaybook, deletePlaybook, playbookSuggestions, getHandoffRules, putHandoffRules,
     recordGap, getGap, listGaps, setGapStatus, rateMessage, qualitySummary,
+    getIdentityKey, setIdentityKey, listCustomers, getCustomer, issueCustomers, createPasswordReset, getPasswordReset, recentPasswordResets, completePasswordReset,
+    createSite, getSite, listSites, setSite, clearSiteDocs, addSiteDoc, deleteSite,
     createChannel, getChannel, findChannelByExternalId, listChannels, getChannelByKeyHash, rotateChannelKey, deleteChannel, touchChannel, getChannelConversation, linkChannelConversation,
     analyticsSummary, analyticsTimeseries, eraseCustomer, purgeOlderThan,
   };

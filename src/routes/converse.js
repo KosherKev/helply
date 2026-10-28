@@ -24,7 +24,7 @@ module.exports = (ctx) => {
   };
 
   /** Run the full AI pipeline for one message and persist everything. */
-  const converse = async ({ workspace: w, identity, token, conv, message, languageHint, visitorId, test = false }) => {
+  const converse = async ({ workspace: w, identity, token, conv, message, languageHint, visitorId, test = false, trustedIdentity }) => {
     // A test run is real (real logs, real model) but never notifies anyone: no webhooks, SSE or review-queue noise.
     const notify = test ? () => {} : ctx.notify;
     const customerId = identity?.claims.userId || null;
@@ -34,7 +34,7 @@ module.exports = (ctx) => {
     const result = await agent.handleMessage({
       text: message, token: identity ? token : undefined, languageHint,
       ctx: {
-        store: ctx.store.forWorkspace(w.id), cls: ctx.logSourceFor(w), jwtSecret: ctx.identitySecret(w), roundTripThreshold: settings.escalationThreshold, tone: repo.getBusinessProfile(w.id).tone, playbooks: repo.listPlaybooks(w.id), rules: repo.getHandoffRules(w.id),
+        store: ctx.store.forWorkspace(w.id), cls: ctx.logSourceFor(w), jwtSecret: ctx.identitySecret(w), identityKey: ctx.identityVerify(w), trustedIdentity, roundTripThreshold: settings.escalationThreshold, tone: repo.getBusinessProfile(w.id).tone, playbooks: repo.listPlaybooks(w.id), rules: repo.getHandoffRules(w.id),
         history, conversationId: conv.id, visitorId,
         audit: ({ action, detail }) => repo.addAudit(w.id, { actorType: "customer", actorId: customerId, action, detail: test ? { ...detail, test: true } : detail }),
       },

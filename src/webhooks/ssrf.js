@@ -107,4 +107,32 @@ const postJson = (rawUrl, body, headers = {}, { timeoutMs = 5000, maxBytes = 409
     req.end(body);
   });
 
-module.exports = { isBlockedIp, validateWebhookUrl, safeLookup, postJson };
+/** SSRF-safe GET for the site crawler. Redirects are followed manually (max 3), each hop re-validated and kept on the same host. */
+const getText = async (rawUrl, { timeoutMs = 8000, maxBytes = 512 * 1024, lookup = safeLookup, requestImpl = https.request, allowHttp = false, accept = "text/html,text/plain" } = {}) => {
+  let url = rawUrl;
+  const host = new URL(rawUrl).host;
+  for (let hop = 0; hop < 4; hop += 1) {
+    const v = validateWebhookUrl(url, { allowHttp });
+    if (!v.ok) throw Object.assign(new Error(v.reason), { code: "EBLOCKED" });
+    if (v.url.host !== host) throw Object.assign(new Error("redirect to another host"), { code: "EREDIRECT" });
+    const r = await new Promise((resolve, reject) => {
+      const req = requestImpl(v.url, { method: "GET", lookup, timeout: timeoutMs, headers: { "User-Agent": "Helply-Indexer/1", Accept: accept } }, (res) => {
+        let size = 0;
+        const chunks = [];
+        let done = false;
+        const finish = () => { if (!done) { done = true; resolve({ status: res.statusCode, headers: res.headers, body: Buffer.concat(chunks).toString("utf8") }); } };
+        res.on("data", (c) => { size += c.length; if (size <= maxBytes) chunks.push(c); else res.destroy(); });
+        res.on("end", finish);
+        res.on("close", finish);
+      });
+      req.on("timeout", () => req.destroy(Object.assign(new Error("timeout"), { code: "ETIMEDOUT" })));
+      req.on("error", reject);
+      req.end();
+    });
+    if (r.status >= 300 && r.status < 400 && r.headers.location) { url = new URL(r.headers.location, v.url).toString(); continue; }
+    return r;
+  }
+  throw Object.assign(new Error("too many redirects"), { code: "EREDIRECT" });
+};
+
+module.exports = { isBlockedIp, validateWebhookUrl, safeLookup, postJson, getText };

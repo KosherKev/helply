@@ -3,7 +3,7 @@
 const crypto = require("node:crypto");
 const { postJson } = require("./ssrf");
 
-const EVENTS = ["ticket.created", "ticket.needs_human", "reply.needs_review", "conversation.handoff", "webhook.test"];
+const EVENTS = ["ticket.created", "ticket.needs_human", "reply.needs_review", "conversation.handoff", "issue.fixed", "webhook.test"];
 
 const sign = (secret, timestamp, body) => `sha256=${crypto.createHmac("sha256", secret).update(`${timestamp}.${body}`).digest("hex")}`;
 

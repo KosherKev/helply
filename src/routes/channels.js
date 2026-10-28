@@ -100,7 +100,7 @@ module.exports = (ctx) => {
   /** Identity for a relayed message: verified against THIS workspace's secret, bound to this visitor if the token says so. */
   const verifyIdentity = (w, token, visitorId) => {
     if (typeof token !== "string" || !token) return null;
-    const v = verify(token, ctx.identitySecret(w), { maxAgeSeconds: config.tokenMaxAgeSeconds, visitorId });
+    const v = verify(token, ctx.identitySecret(w), { maxAgeSeconds: config.tokenMaxAgeSeconds, visitorId, ...ctx.identityVerify(w) });
     if (!v.ok) return null;
     const tenant = v.claims.tenant;
     if (tenant && tenant !== w.id && tenant !== w.slug) return null; // a token minted for another workspace is not ours

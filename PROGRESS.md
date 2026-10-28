@@ -82,6 +82,11 @@ Single source of truth for project state. Read top to bottom at the start of eve
 - **Built:** `GET /v1/inbox/counts`, conversation assignment, issues (derived from ticket fingerprints, regression reopens, export), playbooks (+suggestions; wording injected for cited matching lines; `alwaysHandoff`), handoff rules (keyword/account-issue/low-confidence handovers; `human_request` always on), knowledge gaps (clustered, resolve to FAQ), message feedback and quality summary. Migration `004`. 18 operations promoted; 14 planned remain.
 - **Decision:** handoff rules can only increase handovers, never suppress one; playbook wording never applies to lines the model did not cite.
 
+### 2026-10-28 (rest of v1.2)
+- **Built:** public-key identity (RS256/ES256), customers, notify-fixed (webhook hand-off, never direct messaging), SSRF-safe website indexing (crawler + robots.txt + limits), password reset via the email microservice. Migration `005`. **All v1.2 operations are built**; only the widget routes remain planned. Tests 121/121.
+- **Decision:** the onboarding test uses a server-trusted identity instead of signing a token, so it works in public-key mode.
+- **Decision:** `issue.fixed` webhook is the delivery mechanism for "notify affected customers".
+
 ## Known Limitations
 
 1. ~~In-memory store.~~ Resolved: SQLite (`HELPLY_DB_PATH`, default `.data/helply.db` for `npm start`). Tests use `:memory:`.
@@ -132,6 +137,9 @@ Single source of truth for project state. Read top to bottom at the start of eve
 41. Issues have no stored history of status changes beyond the audit log; severity is a simple heuristic; `notify-fixed` (needs a way to message customers outside a live chat) is not built.
 42. Knowledge-gap clustering is keyword-based (first 8 distinct words, sorted): paraphrases with different words create separate gaps.
 43. Not live-tested this round with real Gemma (covered by fakes); the playbook wording and rule paths should be tried once against the real model.
+
+44. JWKS URLs and key rotation by `kid` are not supported (single PEM per workspace). Password reset email has no HTML template (plain text rendered as HTML). The crawler does not execute JavaScript, so client-rendered sites index poorly.
+45. Real-model live check of the latest paths (playbook wording, rules, tone with Khaya languages, crawler against a real site) has not been run.
 
 ## Next Steps
 

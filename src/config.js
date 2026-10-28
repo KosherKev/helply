@@ -14,6 +14,8 @@ const load = (env = process.env) => ({
   allowSignup: env.ALLOW_SIGNUP === "true" || env.DEMO_MODE === "true",
   trustProxy: env.TRUST_PROXY === undefined || env.TRUST_PROXY === "" ? false : /^\d+$/.test(env.TRUST_PROXY) ? Number(env.TRUST_PROXY) : env.TRUST_PROXY === "true" ? true : env.TRUST_PROXY,
   allowInsecureWebhooks: env.ALLOW_INSECURE_WEBHOOKS === "true", // tests / local dev only
+  emailServiceUrl: trimSlash(env.EMAIL_SERVICE_URL),
+  emailApiKey: env.EMAIL_API_KEY || "",
   allowPrivateLogSources: env.ALLOW_PRIVATE_LOG_SOURCES === "true" || env.DEMO_MODE === "true",
   demoPassword: env.DEMO_PASSWORD || "helply-demo-pass",
   consoleKey: env.CONSOLE_KEY || "",

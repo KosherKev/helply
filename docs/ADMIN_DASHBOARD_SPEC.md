@@ -1,6 +1,6 @@
 # Admin dashboard spec (the team dashboard under `/app`)
 
-For the developer building the dashboard in parallel with the backend. Read with `docs/handover/DASHBOARD_AND_DEMO.md` (what exists and the security rules), `docs/openapi.yaml` (every route; planned ones are `x-planned`), `docs/API_V1_2_PLAN.md` (planned behaviour) and `docs/brand/README.md` (look and voice; it overrides the older colours in `FRONTEND_SPEC.md`). Run `npm run dev:mock`: real routes work, planned routes answer with fixtures. **Onboarding, business profile, FAQ, channels, relay, inbox counts/assign, issues, playbooks, handoff rules, knowledge gaps and quality are real now** (still mock: website indexing, customers, notify-fixed, public-key identity, password reset): use the real backend (log in as `owner@kwikpay.demo`). New workspaces you register start with the AI paused, by design; the demo workspace is live.
+For the developer building the dashboard in parallel with the backend. Read with `docs/handover/DASHBOARD_AND_DEMO.md` (what exists and the security rules), `docs/openapi.yaml` (every route; planned ones are `x-planned`), `docs/API_V1_2_PLAN.md` (planned behaviour) and `docs/brand/README.md` (look and voice; it overrides the older colours in `FRONTEND_SPEC.md`). Run `npm run dev:mock`: real routes work, planned routes answer with fixtures. **Onboarding, business profile, FAQ, channels, relay, inbox counts/assign, issues, playbooks, handoff rules, knowledge gaps and quality are real now** (**every v1.2 route is real now; nothing is mocked any more**): use the real backend (log in as `owner@kwikpay.demo`). New workspaces you register start with the AI paused, by design; the demo workspace is live.
 
 Legend: **Built** = backend route exists and the page exists. **Page todo** = backend exists, page not built or incomplete. **Planned** = backend route does not exist yet (use the mock). Priorities P0/P1/P2 match `x-priority` in the spec.
 
@@ -48,14 +48,14 @@ Top bar: workspace name; **AI status** switch (Live / Paused; Paused sends every
 | | AI quality | `/app/quality` | agent | Backend built; page todo |
 | Business | Business details | `/app/business` | agent (edit: admin) | Backend built; page todo |
 | | FAQ | `/app/business/faq` | agent (edit: admin) | Backend built (incl. CSV import); page todo |
-| | Documents and sites | `/app/business/documents` | agent (edit: admin) | Built (documents) / Planned P1 (sites) |
+| | Documents and sites | `/app/business/documents` | agent (edit: admin) | Built (documents and sites) |
 | | Playbooks | `/app/business/playbooks` | agent (edit: admin) | Backend built; page todo |
 | | Handoff rules | `/app/business/handoff` | agent (edit: admin) | Backend built; page todo (outside-hours option is stored but not enforced yet) |
 | Setup | Onboarding | `/app/onboarding` | agent (act: admin) | Backend built; page todo |
 | | Connections | `/app/connections` (Logs, Identity, Chat channel tabs) | admin | Built (logs, identity, **chat channel: backend built**, page todo) |
 | | Developers | `/app/developers` | admin | Built |
 | | Team | `/app/team` | admin | Built |
-| | Customers | `/app/customers`, `/:id` | agent | Planned P2 |
+| | Customers | `/app/customers`, `/:id` | agent | Backend built; page todo |
 | | Audit log | `/app/audit` | admin | Built |
 | | Settings and privacy | `/app/settings` | admin | Built |
 Login adds "Forgot password" (Planned P1). Role gating hides links but the API is the authority: handle 401/403/404 on every page.
@@ -69,7 +69,7 @@ Login adds "Forgot password" (Planned P1). Role gating hides links but the API i
 
 **Tickets / ticket** (built). Keep "Copy as GitHub issue". Add link to its Issue (P1).
 
-**Issues** (planned). Table: summary, severity, count, affected customers, last seen, status, assignee; filters status/search. Detail: summary, suggested fix, sample evidence table (reuse `EvidenceTable`), linked tickets, notes, status and assignee, **Copy as GitHub issue** (`/export`), **Notify affected customers** (P2: dry run count -> confirm -> send; disabled without a channel).
+**Issues** (planned). Table: summary, severity, count, affected customers, last seen, status, assignee; filters status/search. Detail: summary, suggested fix, sample evidence table (reuse `EvidenceTable`), linked tickets, notes, status and assignee, **Copy as GitHub issue** (`/export`), **Notify affected customers** (dry run count -> confirm -> send. Helply emits webhook event `issue.fixed`; the company's own system delivers the message, so explain that in the confirm dialog).
 
 **Business details** (planned). One form: business name, about (what you sell), website, hours + timezone, contact email/phone, languages offered, tone (friendly/formal/concise), escalation contacts. Helper text explains the assistant quotes these. Unsaved-changes guard. Admin edits, agents read.
 

@@ -126,8 +126,11 @@ const createSupportAgent = ({ config, llm, language, store, fetchImpl = fetch, n
     if (!message) throw new HttpError(400, "message_required", "A message is required");
     if (message.length > config.limits.maxMessageChars) throw new HttpError(400, "message_too_long", "Message is too long");
 
-    const identity = token
-      ? verify(token, secret, { visitorId: ctx.visitorId, now: now(), maxAgeSeconds: config.tokenMaxAgeSeconds })
+    // trustedIdentity is set only by server code (the onboarding test), never from a request.
+    const identity = ctx.trustedIdentity
+      ? ctx.trustedIdentity
+      : token
+      ? verify(token, secret, { ...(ctx.identityKey || {}), visitorId: ctx.visitorId, now: now(), maxAgeSeconds: config.tokenMaxAgeSeconds })
       : { ok: false, reason: "none" };
     mark("identity", { verified: identity.ok, ...(identity.ok ? {} : { reason: identity.reason }) });
 

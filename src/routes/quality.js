@@ -79,6 +79,33 @@ module.exports = (ctx) => {
     });
   });
 
+  route("post", "/v1/issues/:id/notify-fixed", guard({ role: "admin" }), (req, res) => {
+    userOnly(req);
+    const i = loadIssue(req);
+    if (i.status !== "fixed") throw new HttpError(409, "not_fixed", "Mark the issue as fixed before notifying customers");
+    const { message, dryRun } = req.body || {};
+    if (typeof dryRun !== "boolean") throw new HttpError(400, "invalid_request", "dryRun is required: call it with true first to see how many customers would be told");
+    const { customerIds, withoutCustomer } = repo.issueCustomers(ws(req), i.ticketIds);
+    if (dryRun) return res.json({ dryRun: true, affectedCustomers: customerIds.length, notified: 0, skipped: withoutCustomer });
+    const text = scrubString(str(message, "message", { max: 500, required: true }));
+    // Helply does not message customers itself: it hands the list and the wording to the company's webhook, which delivers.
+    ctx.notify(ws(req), "issue.fixed", { issueId: i.id, summary: i.summary, message: text, customerIds });
+    ctx.audit(req, "issue_customers_notified", { issueId: i.id, customers: customerIds.length });
+    return res.json({ dryRun: false, affectedCustomers: customerIds.length, notified: customerIds.length, skipped: withoutCustomer });
+  });
+
+  // ── customers ─────────────────────────────────────────────────────────
+  route("get", "/v1/customers", guard({ role: "agent" }), (req, res) => {
+    userOnly(req);
+    res.json(repo.listCustomers(ws(req), { q: req.query.q && String(req.query.q).slice(0, 100), limit: req.query.limit, cursor: req.query.cursor }));
+  });
+  route("get", "/v1/customers/:userId", guard({ role: "agent" }), (req, res) => {
+    userOnly(req);
+    const c = repo.getCustomer(ws(req), String(req.params.userId).slice(0, 128));
+    if (!c) throw new HttpError(404, "not_found", "Customer not found");
+    res.json(c);
+  });
+
   // ── playbooks ─────────────────────────────────────────────────────────
   const pbFields = (b, partial) => {
     const o = {};

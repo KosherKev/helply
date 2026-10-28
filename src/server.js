@@ -14,6 +14,9 @@ const { createVault, hashPassword, randomToken } = require("./security/crypto");
 const { createAuth, createLoginGuard, createLimiter } = require("./auth/auth");
 const { createBus } = require("./events");
 const { createWebhookService } = require("./webhooks/service");
+const { createMailer } = require("./mailer");
+const { getText } = require("./webhooks/ssrf");
+const crypto2 = require("node:crypto");
 
 const ah = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
@@ -71,6 +74,14 @@ const buildApp = (config = load(), overrides = {}) => {
 
   const ctx = {
     config, repo, store, vault, llm, khaya, language, agent, bus, webhooks, auth, loginGuard, route, routes, ah, fetchImpl,
+    mailer: overrides.mailer || createMailer({ url: config.emailServiceUrl, apiKey: config.emailApiKey }),
+    crawlPage: overrides.crawlPage || ((url) => getText(url, { allowHttp: config.allowInsecureWebhooks })),
+    jobs: new Set(),
+    /** Verification options for a workspace's customer tokens: its public key (public-key mode) or nothing (shared secret). */
+    identityVerify: (w) => {
+      const k = repo.getIdentityKey(w.id);
+      return k.mode === "public_key" && k.publicKeyPem ? { publicKey: crypto2.createPublicKey(k.publicKeyPem), alg: k.alg } : {};
+    },
     defaultWorkspaceId: DEFAULT_WORKSPACE_ID, defaultEnabled, requireLlm, ipLimiter, DEMO_USERS, hashPassword, randomToken,
     wsOf: (req) => req.principal.workspaceId,
     audit: (req, action, detail = {}) => {
@@ -119,6 +130,7 @@ const buildApp = (config = load(), overrides = {}) => {
   require("./routes/support")(ctx);
   require("./routes/account")(ctx);
   require("./routes/connections")(ctx);
+  require("./routes/sites")(ctx); // before console: /v1/knowledge/sites must win over /v1/knowledge/:id
   require("./routes/console")(ctx);
   require("./routes/channels")(ctx);
   require("./routes/business")(ctx);

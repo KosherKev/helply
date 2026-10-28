@@ -1,7 +1,6 @@
 "use strict";
 /** Onboarding checklist, test-as-a-customer, go-live and pause. */
 const { HttpError } = require("../errors");
-const { sign } = require("../identity/token");
 
 const LANGS = new Set(["en", "tw", "gaa", "ee", "fat", "dag", "pcm"]);
 
@@ -28,16 +27,15 @@ module.exports = (ctx) => {
     if (text.length > config.limits.maxMessageChars) throw new HttpError(400, "message_too_long", "Message is too long");
     if (!llm.isConfigured()) throw new HttpError(503, "llm_not_configured", "Set GEMMA_API_KEY");
     const w = repo.getWorkspace(ws);
-    const secret = ctx.identitySecret(w);
-    if (!secret) throw new HttpError(503, "identity_not_configured", "This workspace has no identity secret");
-    const visitorId = `onboarding-test-${ws}`;
-    const token = sign({ sub: userId.trim(), name: userId.trim(), tenant: w.id, aud: "helply", vid: visitorId }, secret, { ttlSeconds: 120 });
-    const { verify } = require("../identity/token");
-    const identity = verify(token, secret, { maxAgeSeconds: config.tokenMaxAgeSeconds, visitorId });
+    // The test acts as this customer without a token: Helply cannot sign for a company that uses public-key identity, and the point
+    // of the test is to exercise logs, knowledge and wording, not the company's signing code (the "identity" step covers that).
+    const identity = { ok: true, claims: { userId: userId.trim(), name: userId.trim(), tenant: w.id, exp: Math.floor(Date.now() / 1000) + 120, visitorId: null, jti: null } };
+    const visitorId = undefined;
+    const token = undefined;
     const conv = repo.createConversation(ws, { customerId: userId.trim(), customerName: userId.trim(), language: LANGS.has(language) ? language : "en", isTest: true });
     let result;
     try {
-      result = await ctx.core.converse({ workspace: w, identity, token, conv, message: text, languageHint: LANGS.has(language) ? language : undefined, visitorId, test: true });
+      result = await ctx.core.converse({ workspace: w, identity, token, conv, message: text, languageHint: LANGS.has(language) ? language : undefined, visitorId, test: true, trustedIdentity: identity });
     } catch (err) {
       repo.recordCustomerTest(ws, { ok: false });
       throw err;
