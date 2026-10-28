@@ -28,5 +28,5 @@ export default function SmoothScroll() {
     }
   }, [motion])
 
-  return <span data-scroll-thumb aria-hidden="true" className="pointer-events-none fixed right-1 top-0 z-[75] h-12 w-[3px] rounded-full bg-navy/40 mix-blend-difference" />
+  return <span data-scroll-thumb aria-hidden="true" className="pointer-events-none fixed right-1 top-0 z-[75] h-12 w-[3px] rounded-full bg-sky/80 will-change-transform" />
 }

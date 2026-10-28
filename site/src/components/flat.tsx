@@ -36,7 +36,7 @@ export function WhatItDoes() {
             <Tag>What it does</Tag>
           </div>
           <Words
-            className="mt-6 font-serif text-[clamp(1.7rem,2.7vw,2.6rem)] leading-[1.12]"
+            className="mt-6 text-[clamp(1.5rem,2.3vw,2.25rem)] font-semibold leading-[1.25] tracking-[-0.015em]"
             text={`↪ ${BRAND} is open-source customer support for apps with logins and payments. A customer writes or speaks in their own language, your app vouches for who they are, and ${BRAND} reads only their recent logs to explain what went wrong, then hands your team the evidence.`}
           />
           <div className="mt-10"><Pill href={DEMO_URL}>Try the live demo</Pill></div>
@@ -59,33 +59,38 @@ export function WhatItDoes() {
 
 /* ------------------------------------------------------------ who it's for (gallery) */
 
-const useCases: { icon: LucideIcon; title: string; tags: string; question: string; log: string; place: string; ratio: string }[] = [
-  { icon: Smartphone, title: 'Mobile money', tags: 'Transfers / callbacks', question: 'I sent money but the receiver says nothing arrived.', log: 'POST /transfers 202 PENDING_CALLBACK', place: 'lg:col-span-4 lg:col-start-1', ratio: 'aspect-[4/5]' },
-  { icon: ShoppingBag, title: 'E-commerce', tags: 'Payments / webhooks / orders', question: 'I paid with MoMo but my order still says awaiting payment.', log: 'POST /webhooks/momo 500 ORDER_UPDATE_FAILED', place: 'lg:col-span-3 lg:col-start-6 lg:mt-48', ratio: 'aspect-square' },
-  { icon: Truck, title: 'Delivery', tags: 'Orders / rider events', question: 'The app says delivered but my parcel never came.', log: 'PATCH /orders/ord_9 200 status=delivered', place: 'lg:col-span-3 lg:col-start-10 lg:mt-12', ratio: 'aspect-[4/5]' },
-  { icon: Zap, title: 'Utilities', tags: 'Purchases / tokens', question: 'I bought prepaid units but no token came.', log: 'POST /tokens 504 VENDOR_TIMEOUT', place: 'lg:col-span-3 lg:col-start-2 lg:mt-16', ratio: 'aspect-square' },
-  { icon: GraduationCap, title: 'Schools', tags: 'Fees / portal access', question: 'I paid the fees but the portal still blocks my results.', log: 'GET /results 403 FEES_UNPAID', place: 'lg:col-span-4 lg:col-start-7 lg:mt-28', ratio: 'aspect-[5/4]' },
+type UseCase = { icon: LucideIcon; title: string; tags: string; question: string; log: string; place: string; ratio: string; photo: string; alt: string; sizes: string }
+
+// Photos from Pexels (free to use), resized to WebP and served from /images (no third-party requests).
+const useCases: UseCase[] = [
+  { icon: Smartphone, title: 'Mobile money', tags: 'Transfers / callbacks', question: 'I sent money but the receiver says nothing arrived.', log: 'POST /transfers 202 PENDING_CALLBACK', place: 'lg:col-[1/span_3]', ratio: 'aspect-[4/5]', photo: 'mobile-money', alt: 'A man in a striped shirt using his phone', sizes: '(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw' },
+  { icon: ShoppingBag, title: 'E-commerce', tags: 'Payments / webhooks / orders', question: 'I paid with MoMo but my order still says awaiting payment.', log: 'POST /webhooks/momo 500 ORDER_UPDATE_FAILED', place: 'lg:col-[7/span_2] lg:mt-[13.4375rem]', ratio: 'aspect-[4/5] lg:aspect-[16/18]', photo: 'e-commerce', alt: 'A smiling woman holding a bank card', sizes: '(min-width: 1024px) 17vw, (min-width: 640px) 33vw, 50vw' },
+  { icon: Truck, title: 'Delivery', tags: 'Orders / rider events', question: 'The app says delivered but my parcel never came.', log: 'PATCH /orders/ord_9 200 status=delivered', place: 'lg:col-[10/-1]', ratio: 'aspect-[4/5]', photo: 'delivery', alt: 'A motorcycle rider carrying a delivery box through a Nairobi street', sizes: '(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw' },
+  { icon: Zap, title: 'Utilities', tags: 'Purchases / tokens', question: 'I bought prepaid units but no token came.', log: 'POST /tokens 504 VENDOR_TIMEOUT', place: 'lg:col-[4/span_2]', ratio: 'aspect-[4/5] lg:aspect-[16/18]', photo: 'utilities', alt: 'Power lines on a pole against a grey sky', sizes: '(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw' },
+  { icon: GraduationCap, title: 'Schools', tags: 'Fees / portal access', question: 'I paid the fees but the portal still blocks my results.', log: 'GET /results 403 FEES_UNPAID', place: 'lg:col-[8/span_3]', ratio: 'aspect-[4/5]', photo: 'schools', alt: 'Two schoolboys in uniform working on a laptop in a classroom', sizes: '(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw' },
 ]
 
-function CaseCard({ icon: Icon, title, tags, question, log, place, ratio }: (typeof useCases)[number]) {
+const srcSet = (name: string) => `/images/${name}-640.webp 640w, /images/${name}-1200.webp 1200w`
+
+function CaseCard({ icon: Icon, title, tags, question, log, place, ratio, photo, alt, sizes }: UseCase) {
+  // Emotion's project card: a clean photo, a one-line meta row and a title that slides right as a
+  // ↪ appears on hover. The overlay shows the log line Helply would find (always on touch screens).
   return (
-    <li className={place}>
-      <div data-glitch className={`group relative overflow-hidden rounded-[18px] bg-navy ${ratio}`}>
-        {/* Scene: glow, the mark watermark, the customer's question and the log line behind it. */}
-        <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(70%_60%_at_30%_25%,rgb(37_99_235/0.75),transparent_70%),radial-gradient(60%_50%_at_85%_90%,rgb(96_165_250/0.45),transparent_70%)] transition-transform duration-700 ease-out-expo group-hover:scale-110" />
-        <img aria-hidden="true" alt="" src="/brand/helply-mark-outline.svg" width={512} height={512} className="absolute -bottom-[20%] -right-[20%] w-[80%] opacity-[0.12]" />
-        <div className="relative flex h-full flex-col justify-between p-4 sm:p-5">
-          <span className="grid h-12 w-12 place-items-center rounded-full border border-white/30 bg-white/10 backdrop-blur">
-            <Icon aria-hidden="true" size={22} className="text-white" />
-          </span>
-          <div className="space-y-2">
-            <p className="max-w-[92%] rounded-[16px] rounded-bl-[4px] bg-white px-3 py-2 text-[13px] leading-snug text-navy">&ldquo;{question}&rdquo;</p>
-            <p className="ml-auto w-fit max-w-full rounded-[8px] border-l-2 border-sky bg-white/10 px-2 py-1 font-mono text-[12px] text-white/90">{log}</p>
-          </div>
-        </div>
+    <li className={`group flex flex-col gap-4 ${place}`}>
+      <div data-glitch className={`relative overflow-hidden rounded-[20px] bg-navy ${ratio}`}>
+        <img src={`/images/${photo}-640.webp`} srcSet={srcSet(photo)} sizes={sizes} alt={alt} width={640} height={800} loading="lazy" decoding="async" className="case-photo absolute inset-0 h-full w-full object-cover" />
+        <p className="case-log absolute inset-x-3 bottom-3 rounded-[12px] border-l-2 border-sky bg-navy/85 px-2.5 py-1.5 font-mono text-[12px] leading-snug text-white">
+          <span className="sr-only">In the logs: </span>{log}
+        </p>
       </div>
-      <p className="mono mt-3 text-mute">{tags}</p>
-      <h3 className="mt-1 font-serif text-[26px] leading-tight">{title}</h3>
+      <div className="flex flex-col gap-2">
+        <p className="mono flex items-center gap-2 truncate text-mute"><Icon aria-hidden="true" size={14} className="shrink-0 text-blue" /><span className="truncate">{tags}</span></p>
+        <div className="relative overflow-hidden">
+          <Turn className="case-turn absolute top-1/2 h-5 w-5 text-blue" />
+          <h3 className="case-title text-[clamp(1.25rem,1.7vw,1.75rem)] font-bold leading-tight tracking-[-0.02em]">{title}</h3>
+        </div>
+        <p className="max-w-[34ch] text-[14px] leading-snug text-mute">&ldquo;{question}&rdquo;</p>
+      </div>
     </li>
   )
 }
@@ -93,16 +98,18 @@ function CaseCard({ icon: Icon, title, tags, question, log, place, ratio }: (typ
 export function WhoFor() {
   return (
     <section id="who" aria-labelledby="who-h" className="wrap pb-32">
-      <h2 id="who-h" className="display grid grid-cols-12 items-start text-[clamp(2.6rem,7vw,7rem)]">
+      <h2 id="who-h" className="display grid grid-cols-12 items-start text-[clamp(2rem,5.6vw,5.5rem)]">
         <span className="col-span-3">Who</span>
         <span className="col-span-4 col-start-4">
           <em className="block">it&apos;s</em>
-          <span className="mono mt-3 block max-w-[300px] font-mono not-italic normal-case">Apps with logins and payments: mobile money, delivery, e-commerce, utilities, schools</span>
+          <span className="mono mt-3 hidden max-w-[300px] not-italic sm:block">Apps with logins and payments: mobile money, delivery, e-commerce, utilities, schools</span>
         </span>
         <span aria-hidden="true" className="col-span-2 col-start-9 pt-[0.25em] text-center"><ArrowRight className="inline h-[0.3em] w-[0.3em]" strokeWidth={1.5} /></span>
-        <span className="col-span-2 col-start-11 text-right">For</span>
+        <span className="col-span-2 col-start-11 text-right">for</span>
       </h2>
-      <ul className="mt-16 grid gap-x-6 gap-y-14 sm:grid-cols-2 lg:grid-cols-12">
+      {/* On phones the caption sits under the heading instead of in its narrow column. */}
+      <p className="mono mt-4 sm:hidden">Apps with logins and payments: mobile money, delivery, e-commerce, utilities, schools</p>
+      <ul className="mt-7 grid grid-cols-2 items-start gap-x-4 gap-y-6 max-[360px]:grid-cols-1 sm:grid-cols-3 lg:mt-[3.25rem] lg:grid-cols-12 lg:gap-y-[3.25rem]">
         {useCases.map((c) => <CaseCard key={c.title} {...c} />)}
       </ul>
       <div className="mt-20 flex justify-center"><Pill href={DEMO_URL}>See it with a real failed payment</Pill></div>
@@ -146,7 +153,7 @@ export function Trust() {
   return (
     <section id="trust" aria-labelledby="trust-h" data-follow-zone className="wrap relative pb-32">
       <div className="grid gap-6 border-b border-navy/20 pb-6 lg:grid-cols-12 lg:items-end">
-        <h2 id="trust-h" className="display text-[clamp(2.6rem,6vw,6rem)] lg:col-span-6">
+        <h2 id="trust-h" className="display text-[clamp(2.25rem,5vw,5rem)] lg:col-span-6">
           What {BRAND}<br /><em>never</em> does
         </h2>
         <p className="mono max-w-[340px] lg:col-span-4 lg:col-start-7">
@@ -186,7 +193,7 @@ export function Contact() {
       <section aria-labelledby="cta-h" className="grid gap-14 lg:grid-cols-12">
         <div className="lg:col-span-6">
           <Tag>Try it</Tag>
-          <h2 id="cta-h" className="display mt-5 text-[clamp(2.6rem,6vw,6rem)]">
+          <h2 id="cta-h" className="display mt-5 text-[clamp(2.25rem,5vw,5rem)]">
             <span className="block"><em>See</em> it find</span>
             <span className="flex items-center gap-[0.2em] pl-[0.4em]"><Turn className="h-[0.42em] w-[0.42em]" />a failed payment</span>
             <span className="block">in 30 seconds</span>
@@ -197,6 +204,13 @@ export function Contact() {
           </div>
         </div>
         <div className="grid content-start gap-10 sm:grid-cols-2 lg:col-span-6">
+          <figure className="group relative overflow-hidden rounded-[18px] bg-navy sm:col-span-2">
+            <img src="/images/support-agent-640.webp" srcSet={srcSet('support-agent')} sizes="(min-width: 1024px) 45vw, 100vw" alt="A support agent wearing a headset, smiling while she talks to a customer" width={1200} height={800} loading="lazy" decoding="async" className="case-photo aspect-[16/9] w-full object-cover" />
+            <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(to_top,rgb(15_23_42/0.85),transparent_55%)]" />
+            <figcaption className="absolute inset-x-4 bottom-4 flex items-center gap-2 text-[14px] text-white">
+              <Turn className="h-4 w-4 shrink-0 text-sky" /> When {BRAND} is not sure, a person on your team takes over.
+            </figcaption>
+          </figure>
           <p className="mono sm:col-span-2">Have an app with logins and payments? {BRAND} is MIT licensed. Run it on your own server, with your own keys.</p>
           <nav aria-label="Footer pages">
             <p className="flex items-center gap-1 text-[13px] text-mute">Pages <Turn className="h-3.5 w-3.5" /></p>
@@ -218,7 +232,7 @@ export function Contact() {
         </div>
       </section>
       <div className="mt-24 flex flex-wrap items-center justify-between gap-4 border-t border-navy/20 py-5 text-[12px] text-mute">
-        <span>© 2026 {BRAND} contributors. MIT license.</span>
+        <span>© 2026 {BRAND} contributors. MIT license. Photos: <a className="inline-block py-1 underline underline-offset-2 hover:text-blue" href="https://www.pexels.com" target="_blank" rel="noopener noreferrer">Pexels</a>.</span>
         <span className="mono flex items-center gap-1 text-navy">Keep scrolling <Turn className="h-3.5 w-3.5" /></span>
         <a className="hover:text-blue" href={`${GITHUB_URL}#security-model`}>Security model</a>
       </div>
@@ -243,7 +257,7 @@ export function NextPage() {
           <ArrowUpRight aria-hidden="true" size={20} className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
         </span>
         <span className="mono">[ Next page ]</span>
-        <span className="display text-[clamp(3rem,8vw,7rem)] normal-case">Docs</span>
+        <span className="display text-[clamp(3rem,7vw,6rem)]">Docs</span>
       </a>
     </section>
   )

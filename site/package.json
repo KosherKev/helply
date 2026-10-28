@@ -7,11 +7,13 @@
     "build": "next build",
     "start": "npx serve out -l 4173",
     "typecheck": "tsc --noEmit",
-    "lint": "next typegen && tsc --noEmit"
+    "lint": "next typegen && tsc --noEmit",
+    "assemble": "node scripts/assemble.mjs",
+    "build:all": "npm --prefix ../web run build && next build && node scripts/assemble.mjs",
+    "preview": "npx -y serve@14 deploy -l 4173"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",
-    "@fontsource/instrument-serif": "^5.3.0",
     "@fontsource/plus-jakarta-sans": "5.3.0",
     "@gsap/react": "2.1.2",
     "gsap": "3.15.0",

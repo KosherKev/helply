@@ -9,7 +9,7 @@ import { Tag, Turn } from './ui'
 
 const sceneCls = 'relative h-[175vh] overflow-x-clip text-white'
 const stickyCls = 'sticky top-0 flex h-svh flex-col wrap'
-const big = 'display text-[clamp(2.9rem,7.4vw,7.4rem)]'
+const big = 'display text-[clamp(2.1rem,5.6vw,5.75rem)]'
 
 export function SceneHero() {
   return (
@@ -19,9 +19,9 @@ export function SceneHero() {
           <p className="mono mb-6 max-w-[290px]">Open-source customer support for Ghanaian languages</p>
           <h1 id="hero-h" className={big}>
             <span className="lead block">Support</span>
-            <span className="block pl-[18%] sm:pl-[24%]">that speaks your</span>
-            <span className="block pl-[18%] sm:pl-[24%]">customers&apos; language</span>
-            <span className="block pl-[18%] sm:pl-[24%]">and reads your logs</span>
+            <span className="block pl-[6%] sm:pl-[18%] lg:pl-[24%]">that speaks your</span>
+            <span className="block pl-[6%] sm:pl-[18%] lg:pl-[24%]">customers&apos; language</span>
+            <span className="block pl-[6%] sm:pl-[18%] lg:pl-[24%]">and reads your logs</span>
           </h1>
         </div>
       </div>
@@ -98,9 +98,9 @@ export function SceneHow() {
           <p className="mono mt-4 max-w-[260px]">Every answer comes back to one thing</p>
           <h2 id="how-h" className={`${big} mt-6`}>
             <span className="flex items-center gap-[0.25em]"><span className="lead">It</span><Turn className="h-[0.42em] w-[0.42em]" /></span>
-            <span className="block pl-[18%] sm:pl-[24%]">reads only the logs</span>
-            <span className="block pl-[18%] sm:pl-[24%]">of one verified</span>
-            <span className="block pl-[18%] sm:pl-[24%]">customer</span>
+            <span className="block pl-[6%] sm:pl-[18%] lg:pl-[24%]">reads only the logs</span>
+            <span className="block pl-[6%] sm:pl-[18%] lg:pl-[24%]">of one verified</span>
+            <span className="block pl-[6%] sm:pl-[18%] lg:pl-[24%]">customer</span>
           </h2>
           <ol className="mono mt-8 grid max-w-3xl gap-3 sm:grid-cols-2 lg:ml-[24%]">
             <li>(01) A customer writes or speaks in their own language.</li>

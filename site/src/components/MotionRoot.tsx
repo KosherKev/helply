@@ -7,13 +7,13 @@ import { onReady, useMotion } from '@/lib/motion'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
 
-// Headline "warp": the RGB-split, stretched, blurred state text passes through between scenes.
+// Headline "warp": the RGB-split, stretched state text passes through between scenes.
+// No CSS blur: animating filter on huge text repaints at full resolution every frame.
 const WARP = {
   autoAlpha: 0,
   y: 40,
   skewX: -10,
   scaleY: 1.35,
-  filter: 'blur(10px)',
   textShadow: '-10px 0px 0px rgba(96,165,250,0.9), 10px 0px 0px rgba(37,99,235,0.9)',
 }
 const CLEAN = {
@@ -21,7 +21,6 @@ const CLEAN = {
   y: 0,
   skewX: 0,
   scaleY: 1,
-  filter: 'blur(0px)',
   textShadow: '0px 0px 0px rgba(96,165,250,0), 0px 0px 0px rgba(37,99,235,0)',
 }
 
@@ -48,7 +47,7 @@ export default function MotionRoot({ children }: { children: ReactNode }) {
       }
       // Positions on a 0..1 timeline over the whole pass of the section. The text is stuck in
       // place from about 0.36 to 0.64, so it arrives just before and leaves just after that.
-      const tl = gsap.timeline({ scrollTrigger: { trigger: section, start: 'top bottom', end: 'bottom top', scrub: 0.6 } })
+      const tl = gsap.timeline({ scrollTrigger: { trigger: section, start: 'top bottom', end: 'bottom top', scrub: true } })
       if (!isIntro) tl.fromTo(el, WARP, { ...CLEAN, ease: 'power2.out', duration: 0.22 }, 0.14)
       tl.to(el, { ...WARP, y: -40, ease: 'power2.in', duration: 0.16 }, 0.58)
       tl.set({}, {}, 1)
@@ -78,18 +77,19 @@ export default function MotionRoot({ children }: { children: ReactNode }) {
     // 4. Focus list: the item at the viewport centre is dark with a ↪, the rest fade with distance.
     q('[data-focus-list]').forEach((list: HTMLElement) => {
       const items = Array.from(list.querySelectorAll<HTMLElement>('[data-focus-item]'))
+      let active: HTMLElement | null = null
       const update = () => {
+        // Read every position first, then write, so the browser lays out once per frame.
         const mid = window.innerHeight / 2
-        let best: HTMLElement | null = null, bestD = Infinity
+        const ds = items.map((it) => { const r = it.getBoundingClientRect(); return Math.abs(r.top + r.height / 2 - mid) })
+        let best = 0
+        ds.forEach((d, i) => { if (d < ds[best]) best = i })
+        // Floor of 0.7 keeps faded Deep Navy items above 4.5:1 on Ice Blue.
+        items.forEach((it, i) => { it.style.opacity = String(Math.max(0.7, 1 - ds[i] / (window.innerHeight * 0.38))) })
+        if (items[best] === active) return
+        active = items[best]
         items.forEach((it) => {
-          const r = it.getBoundingClientRect()
-          const d = Math.abs(r.top + r.height / 2 - mid)
-          // Floor of 0.7 keeps faded Deep Navy items above 4.5:1 on Ice Blue.
-          it.style.opacity = String(Math.max(0.7, 1 - d / (window.innerHeight * 0.38)))
-          if (d < bestD) { bestD = d; best = it }
-        })
-        items.forEach((it) => {
-          const on = it === best
+          const on = it === active
           it.querySelector('[data-num]')?.classList.toggle('hidden', on)
           it.querySelector('svg')?.classList.toggle('hidden', !on)
         })

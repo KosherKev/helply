@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef } from 'react'
+import gsap from 'gsap'
 import {
   ACESFilmicToneMapping,
   DirectionalLight,
@@ -62,7 +63,9 @@ export default function World({ quality }: { quality: Quality }) {
       return // No WebGL: the static backdrop stays.
     }
     setProgress(0.1)
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, high ? 1.75 : 1.25))
+    // Resolution starts capped and steps down if frames run long (see frame()).
+    let pixelRatio = Math.min(window.devicePixelRatio, high ? 1.5 : 1.25)
+    renderer.setPixelRatio(pixelRatio)
     renderer.setSize(window.innerWidth, window.innerHeight)
     renderer.outputColorSpace = SRGBColorSpace
     renderer.toneMapping = ACESFilmicToneMapping
@@ -167,14 +170,27 @@ export default function World({ quality }: { quality: Quality }) {
 
     const camPos = new Vector3(), camTgt = new Vector3(), objPos = new Vector3(), tmp = new Vector3()
     const par = { x: 0, y: 0 }
-    let t = 0, last = performance.now(), spin = 0, raf = 0
+    let t = 0, last = performance.now(), spin = 0, running = false
+    let slowAvg = 1 / 60, slowFrames = 0
 
+    // Runs on GSAP's ticker right after Lenis, so the camera reads the same scroll position as
+    // the page in the same frame (no judder between two loops).
     const frame = () => {
-      raf = requestAnimationFrame(frame)
-      if (!shapes.length || document.hidden || visible.size === 0) { last = performance.now(); return }
+      if (!shapes.length || document.hidden || visible.size === 0) { last = performance.now(); slowFrames = 0; return }
       const now = performance.now()
-      const dt = Math.min((now - last) / 1000, 0.05)
+      const raw = (now - last) / 1000
+      const dt = Math.min(raw, 0.05)
       last = now
+
+      // Adaptive resolution: if frames stay slower than ~45 fps for about two seconds, render fewer pixels.
+      slowAvg += (Math.min(raw, 0.1) - slowAvg) * 0.05
+      slowFrames = slowAvg > 1 / 45 ? slowFrames + 1 : 0
+      if (slowFrames > 90 && pixelRatio > 0.75) {
+        pixelRatio = Math.max(0.75, pixelRatio - 0.25)
+        renderer.setPixelRatio(pixelRatio)
+        slowFrames = 0
+        slowAvg = 1 / 60
+      }
       const moving = motionEnabled()
       if (moving) t += dt
 
@@ -252,18 +268,28 @@ export default function World({ quality }: { quality: Quality }) {
       setProgress(0.55)
       shapes = [mark, bubbleShape(N), sphereShape(N), shieldShape(N), torusShape(N)]
       scatter = scatterShape(N, mark)
+      flakes.update(scatter, mark, 0, 0, false, pointer) // gives the shader its attributes before compiling
       measure()
       setProgress(0.7)
       try { await renderer.compileAsync(scene, camera) } catch { /* compile on first frame instead */ }
       if (disposed) return
+      // Draw every shape once while the canvas is still hidden, so all buffers reach the GPU now
+      // instead of stalling a frame mid-scroll.
+      renderer.render(scene, camera)
+      for (let i = 0; i < shapes.length; i++) {
+        flakes.update(shapes[i], shapes[(i + 1) % shapes.length], 0.5, 0, false, pointer)
+        renderer.render(scene, camera)
+      }
+      if (disposed) return
       observeScenes()
       setProgress(1)
-      frame()
+      gsap.ticker.add(frame)
+      running = true
     })()
 
     return () => {
       disposed = true
-      cancelAnimationFrame(raf)
+      if (running) gsap.ticker.remove(frame)
       stopReady()
       io.disconnect()
       ro.disconnect()

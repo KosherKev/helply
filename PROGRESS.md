@@ -7,10 +7,10 @@ Single source of truth for project state. Read top to bottom at the start of eve
 | Field | Value |
 |---|---|
 | Current phase | **v1.1 expansion in progress.** API (SQLite, auth, workspaces, webhooks, OpenAPI) and the `web/` app (homepage + `/demo`) are committed. **Landing page built in `site/`** (Next.js static export). Remaining: user dashboard, deployment. Task: `docs/CLAUDE_CODE_PROMPT.md`. |
-| Blocking issues | None hard-blocking. Needs the user's keys (KL-2, KL-3), a committed `userId` filter in central-logging-service (KL-9), and a decision on which app serves `/` (KL-19). |
-| Next action | Decide routing for `/` (`site/` vs `web/` Home) and confirm `GITHUB_URL` with Kevin (KL-20); then the user dashboard. |
+| Blocking issues | None hard-blocking. Needs the user's keys (KL-2, KL-3) and a committed `userId` filter in central-logging-service (KL-9). |
+| Next action | Confirm `GITHUB_URL` with Kevin (KL-20); deploy `site/deploy` (`npm run build:all` in `site/`); then the user dashboard. |
 | Repo state | Git repo on `main` with commits up to the landing page (see Changelog). Landing page on branch `landing-page`, not merged. Cross-repo: `../central-logging-service` still has an uncommitted `userId` filter (3 files). |
-| Verified running | `npm test` (root): **73/73 pass** with real `npm ci` (no borrowed modules). `site/`: `tsc --noEmit` clean, `next build` clean; Lighthouse mobile on `/` served compressed (`serve`): **performance 93–94, accessibility 100, best practices 100, SEO 100** (LCP 2.9 s, TBT 90–110 ms, CLS 0.002). Desktop 1440x900 and mobile 390x844 walkthroughs: no console errors, no horizontal scroll. **Not verified against live Gemma, Khaya or central-logging-service.** No root linter (KL-7). |
+| Verified running | `npm test` (root): **73/73 pass** with real `npm ci` (no borrowed modules). `site/`: `tsc --noEmit` clean, `next build` clean; Lighthouse mobile on `/` served compressed (`serve`): **performance 92–94, accessibility 100, best practices 100, SEO 100** (LCP 3.0–3.1 s, TBT 70–120 ms, CLS 0), measured on the assembled `site/deploy`. Scroll profile at 1440x900, DPR 2, CPU 4x slowdown: no frames over 20 ms (was 4.3%). `/`, `/demo` and `/app/*` load from `site/deploy` with no errors. Desktop 1440x900 and mobile 390x844 walkthroughs: no console errors, no horizontal scroll. **Not verified against live Gemma, Khaya or central-logging-service.** No root linter (KL-7). |
 | Deadline | Hackathon submission ~19:00 Africa/Accra, 2026-10-28. Feature freeze target 18:00. |
 
 ## Reconciliation (2026-10-28, landing-page session)
@@ -51,6 +51,14 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 - **Hero text stays painted under the gate** and warps in after Enter, so LCP is measured on real text, not on a hidden element.
 - **Lighthouse is measured against a compressing server** (`npx serve`), because production hosts gzip/brotli; Python's `http.server` does not compress and gave a misleading 73.
 
+### 2026-10-28 (landing page, round 2)
+- **Routing: `site/` serves `/`, `web/` serves `/demo` and `/app/*`** (user decision). `site/scripts/assemble.mjs` merges both static builds into `site/deploy` and never edits `web/`. The web app's own `index.html` already clears its prerendered homepage on other paths, so it serves as the shell.
+- **Fonts follow the brand guide** (user request, reversing the earlier Emotion-font decision): Plus Jakarta Sans for everything; display 800 with -2% tracking in sentence case, a 500 italic lead word, 12px/500 captions. IBM Plex Mono stays only for log lines (`font-mono`), where monospace is functional. Instrument Serif removed.
+- **White nav bar** with the full-colour logo (user request); the over-the-world white text variant was removed.
+- **Gallery copies Emotion's CSS placement** exactly (read from emotion-agency.com's stylesheet): 12 columns, 1rem gap, 3.25rem row gap, item 2 lowered 13.4375rem, 3 columns on tablet, 2 on phones; title slides right with a ↪ on hover.
+- **Photos from Pexels**, downloaded from the public CDN after web search (the pexels.com site blocks automated browsing, so no bot-check workaround), resized to WebP 640/1200 and self-hosted. Credited in the footer; the Pexels license needs no attribution.
+- **Scroll lag fixes:** flake animation moved to the vertex shader (was a 7,000-flake CPU loop re-uploading ~450 KB per frame); the world renders on GSAP's ticker after Lenis; resolution cap 1.5 and adaptive step-down; no animated CSS blur on headlines; no backdrop-filter over the canvas; focus list reads then writes layout; text scrub follows Lenis directly (no extra 0.6 s lag); all shape buffers uploaded before the gate opens.
+
 ## Known Limitations
 
 1. In-memory store: tickets and knowledge reset on restart. (v1.1: SQLite.)
@@ -71,12 +79,14 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 16. ~~**Nothing is committed** (no git repo in `helply`).~~ Resolved: see Reconciliation.
 17. Twi/Ga/Ewe/Pidgin sample messages for the demo have not been written or reviewed by a native speaker.
 18. ~~`npm install` never run at the root (KL-8)~~: resolved 2026-10-28, `npm ci` and 73/73.
-19. **Two homepages exist:** `site/` (the new landing page) and `web/src/pages/Home.tsx`. Deployment must route `/` to `site/out` and `/demo` to `web/`, or retire one. Not decided.
+19. ~~**Two homepages exist:** `site/` and `web/src/pages/Home.tsx`; routing not decided.~~ Resolved: `site/deploy` serves `/` from `site/` and `/demo`, `/app/*` from `web/`. `web/`'s Home is built but unreachable at `/` in production.
 20. `site/` `NEXT_PUBLIC_GITHUB_URL` defaults to `https://github.com/kevinafenyo/helply`, which is **unconfirmed**. The "Next page: Docs" link goes to `${GITHUB_URL}#quickstart` because there is no `/docs` page.
 21. The AI orb sends `/demo?q=…`; `web/`'s Demo page may ignore `q` (not touched, other owner).
 22. `site/` has no sitemap, no dark/light toggle (it is light with navy scenes by design), and no automated tests beyond `tsc`/build. Lighthouse 93–94 assumes compression is enabled in production.
-23. The gallery cards in `site/` are composed in CSS (navy tiles, icon, chat bubble, log line). There is no photography or generated imagery yet.
+23. ~~No photography in the gallery.~~ Resolved: Pexels photos. Photographers are not individually credited (Pexels does not require it; the pages could not be fetched to read names).
 24. `docs/brand/README.md`, referenced by the handover, does not exist; the brand kit was taken from the user's Downloads.
+25. Scroll smoothness was measured in headless Chrome (no vsync, Apple GPU). Not yet checked on a low-end Windows laptop or a mid-range Android phone.
+26. The DigitalOcean static-site settings in `site/README.md` are documented but not deployed or tested.
 
 ## Next Steps
 
@@ -90,7 +100,7 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 8. Get a native-speaker Twi sample message (KL-17). Rehearse `docs/DEMO_SCRIPT.md`.
 9. Deploy (API + static site) on DigitalOcean; record the demo; Devpost write-up. Feature freeze 18:00.
 10. ~~Landing page~~ (built in `site/`, branch `landing-page`). Review and merge are the user's call; never merged by Claude.
-11. Decide `/` routing between `site/` and `web/` (KL-19); confirm `GITHUB_URL` (KL-20); have `/demo` read `?q=` (KL-21).
+11. ~~Decide `/` routing (KL-19).~~ Confirm `GITHUB_URL` (KL-20); have `/demo` read `?q=` (KL-21).
 12. Enable gzip/brotli on the static host and re-run Lighthouse mobile on the deployed URL.
 
 ## Changelog
@@ -127,4 +137,25 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
   - Result: Lighthouse went from 73/93/96/100 to 93–94/100/100/100.
 - **Deliberately not done:** touching `src/`, `web/`, `web/src/app/*` or `Demo.tsx`; a `/docs` page; generated imagery; changing the four promises; merging.
 - **Commit:** `330a83e` on branch `landing-page`.
+
+### 2026-10-28: landing page round 2 (routing, photos, brand fonts, scroll performance)
+- **Built:**
+  - `site/scripts/assemble.mjs`, plus `npm run assemble`, `build:all` and `preview`
+  - the dev demo URL pointing at Vite
+  - Pexels photos in the gallery and contact block
+  - Emotion's exact gallery grid
+  - Plus Jakarta Sans throughout
+  - the white nav
+  - the GPU flake shader
+  - the world loop on the GSAP ticker, with adaptive resolution
+- **Broke and fixed:** the gallery caption wrapped one word per line on phones (moved under the heading). Measuring Lighthouse against Python's `http.server` understated performance (no compression); measured with `serve` instead.
+- **Verified:**
+  - `tsc` clean, build clean
+  - Lighthouse mobile 92–94/100/100/100
+  - no frames over 20 ms at 4x CPU slowdown
+  - desktop and mobile screenshots: no console errors, no horizontal scroll
+  - `/demo` and `/app/*` load from `site/deploy`
+  - root `npm test` 73/73
+- **Deliberately not done:** editing `web/`; deploying; crediting individual photographers.
+- **Commit:** `COMMIT_PENDING` on branch `landing-page`.
 

@@ -37,18 +37,8 @@ function SettingsPanel() {
 export default function Nav() {
   const [settings, setSettings] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
-  const [light, setLight] = useState(false)
   const panel = useRef<HTMLDivElement>(null)
   const menuBtn = useRef<HTMLButtonElement>(null)
-
-  // Dark ink over the flat Ice Blue page, white over the 3D world.
-  useEffect(() => {
-    const flat = document.querySelector('[data-flat]')
-    if (!flat) return
-    const io = new IntersectionObserver(([e]) => setLight(e.isIntersecting), { rootMargin: '0px 0px -92% 0px' })
-    io.observe(flat)
-    return () => io.disconnect()
-  }, [])
 
   useEffect(() => {
     if (!settings && !menuOpen) return
@@ -63,15 +53,14 @@ export default function Nav() {
     return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('click', onClick) }
   }, [settings, menuOpen])
 
-  const dark = light && !menuOpen
   return (
-    <header className={`fixed inset-x-0 top-0 z-[70] transition-colors duration-500 ${dark ? 'text-navy' : 'text-white'}`}>
+    <header className="fixed inset-x-0 top-0 z-[70] border-b border-slate bg-white text-navy">
       <a href="#main" className="skip-link">Skip to content</a>
       <nav aria-label="Main" className="wrap flex h-[68px] items-center justify-between gap-4">
         <a href="#top" aria-label={`${BRAND} home`} className="shrink-0">
-          {/* Primary lockup: full colour on light, on-navy version over the world. */}
+          {/* Primary lockup in full colour on the white bar. */}
           <img
-            src={dark ? '/brand/helply-logo-horizontal-color.svg' : '/brand/helply-logo-horizontal-on-navy-clear.svg'}
+            src="/brand/helply-logo-horizontal-color.svg"
             alt=""
             width={104}
             height={41}
@@ -79,10 +68,10 @@ export default function Nav() {
           />
         </a>
         <ul className="mono hidden gap-8 lg:ml-[10%] lg:flex">
-          {links.map((l) => <li key={l.href}><a className="hover:opacity-70" href={l.href}>{l.label}</a></li>)}
+          {links.map((l) => <li key={l.href}><a className="hover:text-blue" href={l.href}>{l.label}</a></li>)}
         </ul>
         <div ref={panel} className="relative hidden lg:block">
-          <button type="button" aria-expanded={settings} aria-controls="settings-panel" onClick={() => setSettings((s) => !s)} className="mono flex items-center gap-2 hover:opacity-70">
+          <button type="button" aria-expanded={settings} aria-controls="settings-panel" onClick={() => setSettings((s) => !s)} className="mono flex items-center gap-2 hover:text-blue">
             <Settings size={14} aria-hidden="true" /> Settings
           </button>
           <div id="settings-panel" hidden={!settings} className="absolute left-1/2 top-9 w-64 -translate-x-1/2 rounded-[16px] border border-white/60 bg-ice/90 p-4 text-navy shadow-[0_20px_40px_-20px_rgb(15_23_42/0.5)] backdrop-blur-md">
@@ -105,19 +94,19 @@ export default function Nav() {
         </div>
       </nav>
 
-      <div id="site-menu" hidden={!menuOpen} data-lenis-prevent className="fixed inset-0 top-[68px] overflow-y-auto bg-navy/95 text-white backdrop-blur-md lg:hidden">
+      <div id="site-menu" hidden={!menuOpen} data-lenis-prevent className="fixed inset-0 top-[68px] overflow-y-auto bg-white text-navy lg:hidden">
         <div className="wrap py-8">
           <ol>
             {menu.map((l, i) => (
-              <li key={l.href} className="border-b border-white/15">
+              <li key={l.href} className="border-b border-slate">
                 <a href={l.href} onClick={() => setMenuOpen(false)} className="flex items-baseline gap-4 py-4">
-                  <span className="idx text-sky">({String(i + 1).padStart(2, '0')})</span>
-                  <span className="display text-[44px]">{l.label}</span>
+                  <span className="idx text-blue">({String(i + 1).padStart(2, '0')})</span>
+                  <span className="display text-[32px]">{l.label}</span>
                 </a>
               </li>
             ))}
           </ol>
-          <div className="mt-8 rounded-[16px] bg-ice p-4 text-navy">
+          <div className="mt-8 rounded-[20px] border border-slate bg-ice p-4 text-navy">
             <p className="mono mb-2 text-mute">Settings</p>
             <SettingsPanel />
           </div>
