@@ -1,0 +1,84 @@
+# Deploying Helply to DigitalOcean
+
+**Target: one Droplet running Docker Compose** (API + Caddy for HTTPS and the static site). Not App Platform: Helply keeps its data in SQLite and App Platform has no persistent disk, so every restart would erase accounts, conversations and keys.
+Status: the artifacts are written and the compose file and a production-mode API boot were validated, but **the Docker images have not been built or run** (no Docker daemon was available when this was written). Expect to fix small things on the first `docker compose up`.
+
+## What gets deployed
+| Piece | Where | Notes |
+|---|---|---|
+| API | `api` container (`Dockerfile`) | Node 22, SQLite at `/data/helply.db` on a named volume |
+| Site + dashboard | `web` container (`deploy/Dockerfile.web`) | Built with `tsc` + Vite, the homepage prerendered; served by Caddy |
+| HTTPS, proxy | Caddy (same container) | Automatic certificates; `/v1/*` and `/health` go to the API, so the browser sees one origin (no CORS) |
+| Log service + MongoDB | optional (`deploy/docker-compose.logs.yml`) or your existing deployment | Helply only needs a URL and a read-only key |
+| Model, language | Google Gemini API (Gemma 4), GhanaNLP Khaya | Keys in `.env.production` |
+
+## 1. Prerequisites
+- A domain you control (a subdomain is fine) and a DigitalOcean account.
+- Keys: `GEMMA_API_KEY` (with billing/credits), `KHAYA_API_KEY`, a read-only key for your log service, optionally the email service URL and key.
+- If you want logs: the log service must **contain the `userId` filter** (commit it in `central-logging-service`) before you deploy it anywhere.
+
+## 2. Create the Droplet
+Ubuntu 24.04, 1 vCPU / 2 GB RAM is comfortable (1 GB works for the API alone), region closest to Accra (Frankfurt or London). Add your SSH key. Create a Cloud Firewall allowing inbound 22 (your IP only if you can), 80 and 443; deny the rest. Point a DNS **A record** for your domain at the Droplet's IP.
+```bash
+ssh root@DROPLET_IP
+curl -fsSL https://get.docker.com | sh              # installs Docker and the compose plugin
+adduser --disabled-password --gecos "" deploy && usermod -aG docker deploy
+```
+
+## 3. Get the code and configure
+```bash
+su - deploy
+git clone https://github.com/YOUR-ORG/helply.git /opt/helply   # or: sudo mkdir /opt/helply && chown deploy /opt/helply first
+cd /opt/helply
+cp deploy/production.env.example .env.production
+nano .env.production
+```
+Generate each secret with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` (or `openssl rand -hex 32`). Required: `SITE_ADDRESS`, `APP_URL`, `CORS_ORIGIN`, `HELPLY_ENCRYPTION_KEY` (**back it up**), `GEMMA_API_KEY`, `KHAYA_API_KEY`. The file is gitignored; keep it `chmod 600`.
+**Real customers:** `DEMO_MODE=false`. **Hackathon demo URL:** `DEMO_MODE=true` also gives the fictional KwikPay shop, a demo login (set your own `DEMO_PASSWORD`), open sign-up and `HELPLY_JWT_SECRET` (needed for demo tokens) and a `CLS_*` source for the demo logs. Never put real customer data on a demo-mode server.
+
+## 4. Start
+```bash
+docker compose --env-file .env.production up -d --build
+docker compose --env-file .env.production ps
+curl -s https://YOUR_DOMAIN/health          # {"ok":true,"brand":"Helply"}
+docker compose --env-file .env.production logs -f api
+```
+The first start creates the database and runs the migrations. Open `https://YOUR_DOMAIN`, then `/app/signup` (needs `ALLOW_SIGNUP=true` or demo mode) to create the first workspace. Test by IP first if DNS is not ready: `SITE_ADDRESS=:80` serves plain HTTP.
+
+## 5. Logs for the demo (optional, same Droplet)
+```bash
+git clone <central-logging-service repo> /opt/central-logging-service      # must include the userId filter
+echo "CLS_ADMIN_SETUP_TOKEN=$(openssl rand -hex 24)" >> .env.production
+CLS_REPO_PATH=/opt/central-logging-service docker compose --env-file .env.production -f docker-compose.yml -f deploy/docker-compose.logs.yml up -d --build
+# a read key for Helply and a write key for seeding (printed once; paste into .env.production as CLS_API_KEY / CLS_WRITE_KEY):
+docker compose --env-file .env.production -f docker-compose.yml -f deploy/docker-compose.logs.yml exec cls node src/utils/generateAppApiKey.js helply-read --scopes=logs:read --live
+docker compose --env-file .env.production -f docker-compose.yml -f deploy/docker-compose.logs.yml exec cls node src/utils/generateAppApiKey.js helply-seed --scopes=logs:write --live
+```
+Set `CLS_BASE_URL=http://cls:8080` and recreate the API (`up -d`). Seed the fictional story from your machine against the server, or from the repo on the Droplet: `CLS_BASE_URL=http://localhost:8080 CLS_WRITE_KEY=... npm run seed` is not reachable from outside (port not published, by design), so run it inside the network: `docker compose ... run --rm -e CLS_BASE_URL=http://cls:8080 -e CLS_WRITE_KEY=... api node scripts/seed-logs.js` (add `COPY scripts ./scripts` to the Dockerfile if you want this; otherwise seed from your laptop by temporarily publishing the port).
+**Never** point a demo at a shared production logging database with real users' logs.
+
+## 6. Operate
+| Task | Command |
+|---|---|
+| Update | `git pull && docker compose --env-file .env.production up -d --build` (migrations run on start) |
+| Logs | `docker compose --env-file .env.production logs -f api web` |
+| Restart | `docker compose --env-file .env.production restart api` |
+| Backup now | `deploy/backup.sh` (online backup into the data volume, keeps 14 days) |
+| Nightly backup | `crontab -e` > `0 3 * * * cd /opt/helply && deploy/backup.sh >> /var/log/helply-backup.log 2>&1` |
+| Copy backups off | `docker cp $(docker compose --env-file .env.production ps -q api):/data/backups ./backups` then `scp` them away |
+| Restore | stop the API, copy a backup over `/data/helply.db` in the volume, start it. Needs the same `HELPLY_ENCRYPTION_KEY` |
+Enable DigitalOcean Droplet backups as a second layer. Automatic OS security updates: `apt install unattended-upgrades`.
+
+## 7. Production checklist
+- [ ] `DEMO_MODE=false`, no demo password in use, `ALLOW_SIGNUP` set on purpose.
+- [ ] `HELPLY_ENCRYPTION_KEY` set, backed up somewhere other than the Droplet.
+- [ ] HTTPS works on your domain (padlock), `http://` redirects to `https://` (Caddy does this).
+- [ ] Firewall allows only 22, 80, 443. MongoDB and the API are not published (compose uses `expose`, not `ports`).
+- [ ] `TRUST_PROXY=1` (already in the compose file) so per-IP rate limits see real client IPs.
+- [ ] The log key in `CLS_API_KEY` is read-only (`logs:read`); `npm run verify:live` passes from the Droplet network.
+- [ ] A test conversation through `/demo` (demo mode) or onboarding > "Test as a customer" works and shows evidence.
+- [ ] Nightly backup runs and one restore has been tested.
+- [ ] Email works if you rely on password reset (`EMAIL_SERVICE_URL`, `EMAIL_API_KEY`), or administrators know resets are unavailable.
+
+## 8. Known limits of this setup
+Single Droplet, single API process (rate limits and the event stream live in memory, so do not run two API replicas); SQLite is the database (fine for a pilot; plan a move to Postgres before many tenants); no CSP header yet; Khaya and Gemma are external services (latency 10 to 18 s per answer today, see `PROGRESS.md`); the ChatFlow link needs ChatFlow's side wired (`docs/CHATFLOW_INTEGRATION.md`).

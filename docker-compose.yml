@@ -1,0 +1,38 @@
+# Helply on one Droplet: API (SQLite on a named volume) + Caddy (HTTPS, static site, API proxy).
+#   cp deploy/production.env.example .env.production   # fill it in
+#   docker compose --env-file .env.production up -d --build
+services:
+  api:
+    build: .
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      PORT: "8787"
+      HELPLY_DB_PATH: /data/helply.db
+      TRUST_PROXY: "1"            # exactly one proxy (Caddy) sits in front: rate limits then see the real client IP
+    volumes:
+      - helply_data:/data
+    expose:
+      - "8787"
+  web:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.web
+      args:
+        VITE_GITHUB_URL: ${VITE_GITHUB_URL:-}
+        VITE_TWI_SAMPLE: ${VITE_TWI_SAMPLE:-}
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+volumes:
+  helply_data:
+  caddy_data:
+  caddy_config:

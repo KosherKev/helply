@@ -1,0 +1,33 @@
+# SITE_ADDRESS: your domain (Caddy gets and renews a certificate automatically), or ":80" to test by IP.
+{$SITE_ADDRESS::80} {
+	encode gzip zstd
+
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "camera=(), geolocation=(), microphone=(self)"
+		-Server
+	}
+
+	# API: same origin as the site. flush_interval -1 keeps the dashboard's server-sent events streaming.
+	handle /v1/* {
+		reverse_proxy api:8787 {
+			flush_interval -1
+		}
+	}
+	handle /health {
+		reverse_proxy api:8787
+	}
+
+	# Static site with SPA fallback. Built assets are fingerprinted, so they can be cached for a year.
+	handle {
+		root * /srv
+		@assets path /assets/* /brand/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		@html not path /assets/* /brand/*
+		header @html Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+}

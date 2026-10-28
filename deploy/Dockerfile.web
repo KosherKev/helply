@@ -1,0 +1,16 @@
+# Builds the web app (tsc + vite + homepage prerender) and serves it with Caddy, which also proxies the API on the same origin.
+FROM node:22-alpine AS build
+WORKDIR /web
+COPY web/package.json web/package-lock.json ./
+RUN npm ci
+COPY web/ ./
+# Same origin as the API (Caddy proxies /v1 and /health), so the browser uses relative URLs.
+ARG VITE_API_URL=""
+ARG VITE_GITHUB_URL=""
+ARG VITE_TWI_SAMPLE=""
+ENV VITE_API_URL=$VITE_API_URL VITE_GITHUB_URL=$VITE_GITHUB_URL VITE_TWI_SAMPLE=$VITE_TWI_SAMPLE
+RUN npm run build
+
+FROM caddy:2-alpine
+COPY --from=build /web/dist /srv
+COPY deploy/Caddyfile /etc/caddy/Caddyfile

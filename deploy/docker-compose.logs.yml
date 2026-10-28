@@ -1,0 +1,29 @@
+# OPTIONAL: run central-logging-service (and its MongoDB) on the same Droplet.
+#   CLS_REPO_PATH=/opt/central-logging-service docker compose --env-file .env.production -f docker-compose.yml -f deploy/docker-compose.logs.yml up -d --build
+# Set CLS_BASE_URL=http://cls:8080 in .env.production. The log service must contain the userId filter (commit it there first, or the
+# server will build without it and Helply cannot find a customer's logs). Create keys afterwards, see docs/DEPLOY.md.
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    expose:
+      - "27017"
+  cls:
+    build: ${CLS_REPO_PATH:?set CLS_REPO_PATH to the central-logging-service folder}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "8080"
+      MONGODB_URI: mongodb://mongo:27017/helply_logs
+      ADMIN_SETUP_TOKEN: ${CLS_ADMIN_SETUP_TOKEN:?set CLS_ADMIN_SETUP_TOKEN in .env.production}
+    depends_on:
+      - mongo
+    expose:
+      - "8080"
+  api:
+    depends_on:
+      - cls
+volumes:
+  mongo_data:
