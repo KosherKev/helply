@@ -207,5 +207,5 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 - **Built:** the loader counts steadily from 0000 to 100 over at least 3.2 s (0.8 s with motion off) and never runs ahead of real progress; Enter appears only after both finish. Before this, a fast load swapped the progress bar for the buttons after about 1.5 s, so the loader seemed to vanish.
 - **Found:** the chat bot's "server error" is the demo with no API behind it (KL-29). No code change; it needs `.env` keys.
 - **Verified:** `tsc` and `build:all` clean; on the user's `next dev`, the gate stays until Enter and the counter runs for about 4 s.
-- **Commit:** see the next entry.
+- **Commit:** `dc7f672` on branch `landing-page`.
 
