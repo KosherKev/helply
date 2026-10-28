@@ -23,8 +23,8 @@ const makeLanguage = ({ bad = false } = {}) => ({
   names: { en: "English", tw: "Twi", gaa: "Ga", ee: "Ewe", fat: "Fante", dag: "Dagbani", pcm: "Ghanaian Pidgin" },
   asrCode: (l) => l,
   ttsCode: (l) => l,
-  toEnglish: async (t) => ({ text: bad ? "completely unrelated banana words" : String(t).replace(/^\[\w+\] /, ""), provider: "fake" }),
-  fromEnglish: async (t, l) => ({ text: `[${l}] ${t}`, provider: "fake" }),
+  toEnglish: async (t) => ({ text: bad ? "completely unrelated banana words" : String(t).replace(/^\[\w+\] /, ""), provider: "gemma" }),
+  fromEnglish: async (t, l) => ({ text: `[${l}] ${t}`, provider: "gemma" }),
 });
 
 const logRow = (userId, o = {}) => ({
