@@ -24,7 +24,9 @@ export default function Gate() {
   const progress = useProgress()
   const [open, setOpen] = useState(true)
   const [timedOut, setTimedOut] = useState(false)
-  const ready = progress >= 1 || timedOut
+  const [counted, setCounted] = useState(false)
+  const loaded = progress >= 1 || timedOut
+  const ready = loaded && counted
 
   // Never hold anyone at the gate for long, even if the 3D is slow or unavailable.
   useEffect(() => {
@@ -34,19 +36,26 @@ export default function Gate() {
   }, [])
   useEffect(() => { if (ready) enterBtn.current?.focus() }, [ready])
 
-  // Counter and line ease toward the real progress instead of jumping between steps.
-  const shown = useRef({ v: 0 })
+  // Counter and line climb steadily, as on Emotion: never faster than MIN_LOAD seconds from 0 to
+  // 100, and never past the real progress. Enter appears once both reach the end.
+  const real = useRef(0)
+  real.current = loaded ? 1 : progress
   useEffect(() => {
-    const tw = gsap.to(shown.current, {
-      v: ready ? 1 : progress, duration: 0.8, ease: 'power2.out',
-      onUpdate: () => {
-        const v = shown.current.v
-        if (count.current) count.current.textContent = String(Math.round(v * 100)).padStart(4, '0')
-        if (bar.current) bar.current.style.transform = `scaleX(${v})`
-      },
-    })
-    return () => { tw.kill() }
-  }, [progress, ready])
+    const MIN_LOAD = motionEnabled() ? 3.2 : 0.8
+    const start = performance.now()
+    let v = 0, raf = 0
+    const step = (now: number) => {
+      const cap = Math.min(1, (now - start) / 1000 / MIN_LOAD)
+      v += (Math.min(cap, real.current) - v) * 0.12
+      if (Math.min(cap, real.current) >= 1 && v > 0.995) v = 1
+      if (count.current) count.current.textContent = String(Math.round(v * 100)).padStart(4, '0')
+      if (bar.current) bar.current.style.transform = `scaleX(${v})`
+      if (v >= 1) { setCounted(true); return }
+      raf = requestAnimationFrame(step)
+    }
+    raf = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(raf)
+  }, [])
 
   // One 2D canvas draws the cursor trail while loading and the bang after Enter.
   useEffect(() => {

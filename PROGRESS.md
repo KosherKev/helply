@@ -99,6 +99,7 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 24. `docs/brand/README.md`, referenced by the handover, does not exist; the brand kit was taken from the user's Downloads.
 25. Scroll smoothness was measured in headless Chrome (no vsync, Apple GPU). Not yet checked on a low-end Windows laptop or a mid-range Android phone.
 26. The DigitalOcean static-site settings in `site/README.md` are documented but not deployed or tested.
+29. The chat orb opens `/demo`, which needs the API running (`npm run dev` at the root, port 8787) and the web dev server (`npm --prefix web run dev`, port 5173) when testing from `next dev`. With no `.env`, the API answers `identity_not_configured` (no `HELPLY_JWT_SECRET`) and `llm_not_configured` (no `GEMMA_API_KEY`), which the user saw as "server error". Needs the user's keys (KL-2, KL-3).
 27. The loader's cursor trail is a 2D-canvas smoke imitation, not a fluid simulation like Emotion's; the entry bang is matched by eye from 100 ms captures, not from Emotion's source.
 28. Round 5 visuals were checked in headless Chrome only; the user views them in Safari, where WebGL colour and canvas shadow blur can differ slightly.
 
@@ -201,4 +202,10 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
   - Lighthouse mobile 94/100/100/100; 0.6% of frames over 20 ms at 4x CPU slowdown; no console errors.
 - **Not done:** fluid-sim trail (KL-27); Safari check (KL-28).
 - **Commit:** `d87d733` on branch `landing-page`.
+
+### 2026-10-28: loader minimum run
+- **Built:** the loader counts steadily from 0000 to 100 over at least 3.2 s (0.8 s with motion off) and never runs ahead of real progress; Enter appears only after both finish. Before this, a fast load swapped the progress bar for the buttons after about 1.5 s, so the loader seemed to vanish.
+- **Found:** the chat bot's "server error" is the demo with no API behind it (KL-29). No code change; it needs `.env` keys.
+- **Verified:** `tsc` and `build:all` clean; on the user's `next dev`, the gate stays until Enter and the counter runs for about 4 s.
+- **Commit:** see the next entry.
 
