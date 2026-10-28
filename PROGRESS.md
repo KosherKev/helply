@@ -234,3 +234,4 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 - **Fixed (user reports):** GitHub links 404'd (KL-20) and the security-model anchor did not match GitHub's. `localhost:5173/demo` 404'd because the web dev server was not running; started it, `/demo` returns 200.
 - **Left running for the user:** API on 8787 (`CORS_ORIGIN='*' npm run dev`, local only) and web on 5173. The `.env` file was not edited.
 
+- **Commit:** `f612bac`.
