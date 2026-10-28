@@ -201,3 +201,11 @@ The remaining shapes (ApiKey, Webhook, Delivery, AuditEvent, KnowledgeDoc, Membe
 - **Webhooks.** Events `ticket.created`, `ticket.needs_human`, `reply.needs_review`, `conversation.handoff`. Body `{ id, event, createdAt, data }`; headers `X-Helply-Timestamp` and `X-Helply-Signature: sha256=HMAC(secret, timestamp + "." + body)`. HTTPS only; private, loopback, link-local and metadata addresses are refused (checked again at connect time); redirects are not followed; 3 retries with backoff.
 - **Erasure.** `DELETE /v1/customers/:userId/data` removes that customer's conversations, messages and tickets in the caller's workspace. The (immutable) audit trail keeps the fact of the erasure and the customer id.
 - **PLANNED, not built:** `GET /widget.js`, `POST /v1/widget/session`, `GET /v1/conversations/:id/events`, `Idempotency-Key`.
+
+
+## v1.2 built so far: channels and the ChatFlow relay
+Spec: `docs/openapi.yaml` (tags Channels and Relay). Guide for the ChatFlow side: `docs/CHATFLOW_INTEGRATION.md`. Plan for what is still to come: `docs/API_V1_2_PLAN.md`.
+- **Relay key** `hr_live_...` (stored hashed, shown once at `POST /v1/channels` or `/rotate-key`) authenticates `/v1/relay/*` only and identifies one channel and therefore one workspace. Sessions and API keys are rejected there (401), and a relay key opens nothing else.
+- **Customer token claims (additive):** `aud` (if present must be `helply`) and `vid` (binds the token to one chat visitor: accepted only when the caller supplies the same visitor id, so on the direct API a `vid` token is never accepted). `POST /v1/identity/tokens` accepts an optional `visitorId`.
+- **Workspace setting `aiLive`** (`PATCH /v1/workspace`): `false` pauses the AI for the whole workspace. Customer messages are recorded and handed to a person, with no model or log work (direct API: a handoff reply; relay: `suppressed: "ai_paused"`).
+- New audit events: `channel_connected`, `channel_key_rotated`, `channel_disconnected`, `ai_live_changed`, `relay_identity_changed`.

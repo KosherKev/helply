@@ -37,7 +37,7 @@ const load = (env = process.env) => ({
     translatePath: env.KHAYA_TRANSLATE_PATH || "/v1/translate",
   },
   roundTripThreshold: Number(env.ROUND_TRIP_THRESHOLD) > 0 ? Number(env.ROUND_TRIP_THRESHOLD) : 0.4,
-  rate: { supportPerIpPerMin: num(env.RATE_SUPPORT_IP, 30), supportPerWorkspacePerMin: num(env.RATE_SUPPORT_WS, 300), apiPerWorkspacePerMin: num(env.RATE_API_WS, 600), loginPerIpPerMin: num(env.RATE_LOGIN_IP, 10) },
+  rate: { supportPerIpPerMin: num(env.RATE_SUPPORT_IP, 30), supportPerWorkspacePerMin: num(env.RATE_SUPPORT_WS, 300), apiPerWorkspacePerMin: num(env.RATE_API_WS, 600), loginPerIpPerMin: num(env.RATE_LOGIN_IP, 10), relayPerChannelPerMin: num(env.RATE_RELAY_CHANNEL, 120) },
   limits: { maxMessageChars: 1000, evidenceLines: 25, logQueryLimit: 50, maxAudioBytes: 5 * 1024 * 1024 },
 });
 

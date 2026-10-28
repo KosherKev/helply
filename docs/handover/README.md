@@ -17,6 +17,7 @@ Demo logins (demo mode only): `owner@kwikpay.demo` and `agent@kwikpay.demo`, pas
 | **Live demo + team dashboard** (`/demo`, `/app/*`) | [`DASHBOARD_AND_DEMO.md`](DASHBOARD_AND_DEMO.md) | `web/src/pages/Demo.tsx`, `web/src/app/*`, shared components |
 | **Language, demo and write-up** | [`LANGUAGE_AND_DEMO.md`](LANGUAGE_AND_DEMO.md) | native-speaker samples, `docs/DEMO_SCRIPT.md`, Devpost |
 | **Admin dashboard (parallel build)** | [`../ADMIN_DASHBOARD_SPEC.md`](../ADMIN_DASHBOARD_SPEC.md), [`../API_V1_2_PLAN.md`](../API_V1_2_PLAN.md) | what to build per page, workflows, and the planned routes (served as fixtures by `npm run dev:mock`) |
+| **ChatFlow repo owner** | [`../CHATFLOW_INTEGRATION.md`](../CHATFLOW_INTEGRATION.md) | what ChatFlow must call and send; the Helply side is built |
 | **Everyone** | `docs/brand/README.md`, `docs/API_CONTRACT.md`, `docs/openapi.yaml` | brand kit and the API |
 
 ## Rules for everyone

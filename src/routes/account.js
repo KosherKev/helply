@@ -125,13 +125,19 @@ module.exports = (ctx) => {
         if (typeof settings.holdFlaggedReplies !== "boolean") throw new HttpError(400, "invalid_settings", "holdFlaggedReplies must be a boolean");
         s.holdFlaggedReplies = settings.holdFlaggedReplies;
       }
+      if (settings.aiLive !== undefined) {
+        if (typeof settings.aiLive !== "boolean") throw new HttpError(400, "invalid_settings", "aiLive must be a boolean");
+        s.aiLive = settings.aiLive;
+      }
       if (settings.brandColor !== undefined) {
         if (typeof settings.brandColor !== "string" || !HEX.test(settings.brandColor)) throw new HttpError(400, "invalid_settings", "brandColor must be a #RRGGBB colour");
         s.brandColor = settings.brandColor;
       }
       patch.settings = s;
     }
+    const before = repo.getWorkspace(ws).settings.aiLive;
     const w = repo.updateWorkspace(ws, patch);
+    if (patch.settings?.aiLive !== undefined && patch.settings.aiLive !== before) ctx.audit(req, "ai_live_changed", { aiLive: patch.settings.aiLive });
     ctx.audit(req, "settings_changed", { fields: [...Object.keys(patch.settings || {}), ...(patch.name ? ["name"] : [])] });
     res.json(publicWorkspace(w));
   });

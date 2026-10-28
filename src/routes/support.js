@@ -5,12 +5,11 @@ const { verify } = require("../identity/token");
 const { similarity } = require("../language");
 const { scrubString } = require("../logs/redact");
 
-const HOLD_TEXT = "A team member is checking this reply and will answer you shortly.";
 const TEAM_TEXT = "A team member is handling this conversation and will reply here.";
 const STATUSES = new Set(["ai", "needs_human", "human", "resolved"]);
 
 module.exports = (ctx) => {
-  const { config, repo, route, ah, agent, language, khaya, llm, bus, auth, requireLlm, ipLimiter } = ctx;
+  const { config, repo, route, ah, language, khaya, llm, bus, auth, requireLlm, ipLimiter } = ctx;
   const { guard } = auth;
 
   // ── tenant + identity resolution for CUSTOMER calls ───────────────────
@@ -67,12 +66,13 @@ module.exports = (ctx) => {
       if (!conv || (conv.customerId && conv.customerId !== customerId)) throw new HttpError(404, "conversation_not_found", "Conversation not found");
     }
     if (!conv) conv = repo.createConversation(w.id, { customerId, customerName, language: languageHint || "en" });
-    else if (!conv.customerId && customerId) conv = repo.updateConversation(w.id, conv.id, { customerName });
-    if (!conv.customerId && customerId) repo.db.prepare("UPDATE conversations SET customer_id = ? WHERE workspace_id = ? AND id = ? AND customer_id IS NULL").run(customerId, w.id, conv.id);
+    else if (!conv.customerId && customerId) {
+      repo.bindConversationCustomer(w.id, conv.id, customerId, customerName);
+      conv = repo.getConversation(w.id, conv.id);
+    }
 
     if (conv.status === "human") {
-      const m = repo.addMessage(w.id, conv.id, { role: "customer", text: message, english: null, language: conv.language });
-      ctx.notify(w.id, "message.customer", { conversationId: conv.id });
+      const m = ctx.core.storeOnly(w, conv, message);
       return {
         verified: Boolean(resolved.identity), user: resolved.identity ? { id: customerId, name: customerName } : null, requiresAuth: false, needsHuman: true,
         understanding: { language: conv.language, languageName: language.names[conv.language] || conv.language, english: message, intent: "human_request" },
@@ -80,44 +80,19 @@ module.exports = (ctx) => {
         conversationId: conv.id, messageId: m.id, handledBy: "human", ...extra,
       };
     }
-
-    const history = repo.listMessages(w.id, conv.id, { limit: 12, sentOnly: true }).map((m) => ({ role: m.role === "customer" ? "customer" : "assistant", text: m.english || m.text }));
-    const settings = w.settings;
-    const result = await agent.handleMessage({
-      text: message, token: resolved.identity ? token : undefined, languageHint,
-      ctx: {
-        store: ctx.store.forWorkspace(w.id), cls: ctx.logSourceFor(w), jwtSecret: ctx.identitySecret(w), roundTripThreshold: settings.escalationThreshold,
-        history, conversationId: conv.id,
-        audit: ({ action, detail }) => repo.addAudit(w.id, { actorType: "customer", actorId: customerId, action, detail }),
-      },
-    });
-
-    const lang = result.understanding.language;
-    repo.addMessage(w.id, conv.id, { role: "customer", text: message, english: result.understanding.english, language: lang, intent: result.understanding.intent, meta: { understanding: result.understanding } });
-    const held = Boolean(result.roundTrip?.reviewRecommended && settings.holdFlaggedReplies);
-    const ai = repo.addMessage(w.id, conv.id, {
-      role: "ai", text: result.reply.text, english: result.reply.english, language: lang, status: held ? "pending_review" : "sent",
-      reviewRecommended: Boolean(result.roundTrip?.reviewRecommended),
-      meta: { roundTrip: result.roundTrip, evidence: result.evidence, rootCause: result.rootCause, trace: result.trace, ticketId: result.ticketId, needsHuman: result.needsHuman, requiresAuth: result.requiresAuth, understanding: result.understanding },
-    });
-    const wasHandedOff = conv.handedOff;
-    repo.updateConversation(w.id, conv.id, {
-      language: lang, status: result.needsHuman ? "needs_human" : "ai", handedOff: wasHandedOff || result.needsHuman,
-      firstResponseMs: conv.firstResponseMs ?? result.trace[result.trace.length - 1]?.ms ?? null, customerName: customerName || conv.customerName,
-    });
-
-    if (result.ticketId) {
-      const t = repo.getTicket(w.id, result.ticketId);
-      ctx.notify(w.id, "ticket.created", { ticket: t });
-      if (t.status === "needs_human") ctx.notify(w.id, "ticket.needs_human", { ticket: t });
+    if (!w.settings.aiLive) {
+      // Paused by the workspace: no model, no log lookup. The customer is told a person will reply and the team is notified.
+      const m = ctx.core.storeOnly(w, conv, message, { handoff: true });
+      const text = ctx.core.HANDOFF_TEXT;
+      return {
+        verified: Boolean(resolved.identity), user: resolved.identity ? { id: customerId, name: customerName } : null, requiresAuth: false, needsHuman: true,
+        understanding: { language: conv.language, languageName: language.names[conv.language] || conv.language, english: message, intent: "human_request" },
+        reply: { language: "en", english: text, text }, roundTrip: null, evidence: null, rootCause: null, ticketId: null, trace: [],
+        conversationId: conv.id, messageId: m.id, handledBy: "human", ...extra,
+      };
     }
-    if (result.needsHuman && !wasHandedOff) ctx.notify(w.id, "conversation.handoff", { conversationId: conv.id, customerId });
-    ctx.notify(w.id, "message.customer", { conversationId: conv.id });
-    if (held) {
-      ctx.notify(w.id, "reply.needs_review", { conversationId: conv.id, messageId: ai.id });
-      result.reply = { language: "en", english: HOLD_TEXT, text: HOLD_TEXT };
-    }
-    return { ...result, conversationId: conv.id, messageId: ai.id, handledBy: "ai", ...(held ? { held: true } : {}), ...extra };
+    const result = await ctx.core.converse({ workspace: w, identity: resolved.identity, token, conv, message, languageHint });
+    return { ...result, ...extra };
   };
 
   // ── public endpoints ──────────────────────────────────────────────────

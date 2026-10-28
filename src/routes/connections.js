@@ -129,13 +129,14 @@ module.exports = (ctx) => {
 
   const mintLimiter = createLimiter({ max: 120, keyFn: (req) => (req.principal ? `mint:${req.principal.workspaceId}` : null) });
   route("post", "/v1/identity/tokens", guard({ role: "admin", scope: "identity:mint" }), mintLimiter, (req, res) => {
-    const { userId, name } = req.body || {};
+    const { userId, name, visitorId } = req.body || {};
+    if (visitorId !== undefined && (typeof visitorId !== "string" || !visitorId.trim() || visitorId.length > 128)) throw new HttpError(400, "invalid_visitor_id", "visitorId must be a non-empty string");
     if (typeof userId !== "string" || !userId.trim() || userId.length > 128) throw new HttpError(400, "invalid_user_id", "userId is required");
     const w = repo.getWorkspace(ctx.wsOf(req));
     const secret = ctx.identitySecret(w);
     if (!secret) throw new HttpError(503, "identity_not_configured", "This workspace has no identity secret");
-    const token = sign({ sub: userId.trim(), name: typeof name === "string" ? name.slice(0, 80) : undefined, tenant: w.id }, secret, { ttlSeconds: config.tokenMaxAgeSeconds });
-    ctx.audit(req, "identity_token_minted", { userId: userId.trim() });
+    const token = sign({ sub: userId.trim(), name: typeof name === "string" ? name.slice(0, 80) : undefined, tenant: w.id, aud: "helply", ...(visitorId ? { vid: visitorId.trim() } : {}) }, secret, { ttlSeconds: config.tokenMaxAgeSeconds });
+    ctx.audit(req, "identity_token_minted", { userId: userId.trim(), visitorBound: Boolean(visitorId) });
     res.json({ token, expiresIn: config.tokenMaxAgeSeconds });
   });
 

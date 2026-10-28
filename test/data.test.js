@@ -27,7 +27,7 @@ test("migrations are idempotent on a file database", () => {
   try {
     openDb(file).close();
     const again = openDb(file);
-    assert.equal(again.prepare("SELECT COUNT(*) AS n FROM schema_migrations").get().n, 1);
+    assert.equal(again.prepare("SELECT COUNT(*) AS n FROM schema_migrations").get().n, fs.readdirSync(path.join(__dirname, "..", "migrations")).filter((f) => f.endsWith(".sql")).length);
     again.close();
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });

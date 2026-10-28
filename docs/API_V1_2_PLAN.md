@@ -1,4 +1,6 @@
-# API v1.2 plan (PLANNED, not implemented)
+# API v1.2 plan
+
+> **Built (2026-10-28):** channels, the relay API, token v2 claims `aud` and `vid`, and the `aiLive` pause switch (workspace setting, `PATCH /v1/workspace`). Everything else below is still PLANNED. Integration guide for the ChatFlow side: [`CHATFLOW_INTEGRATION.md`](CHATFLOW_INTEGRATION.md).
 
 The machine-readable contract is [`openapi.yaml`](openapi.yaml): every operation here is in it with `x-planned: true` and `x-priority` (P0 first). This file explains the **behaviour** the schema cannot. Types, request and response shapes live only in the spec (do not copy them here or they drift). Built routes are in [`API_CONTRACT.md`](API_CONTRACT.md).
 
@@ -21,19 +23,19 @@ Tenant id always comes from the credential. Errors are `{ error: { code, message
 | Issues | `/v1/issues` (+detail, patch, export, notify-fixed) | P1 (notify P2) | agent, admin for notify | Issues page |
 | Customers | `GET /v1/customers`, `GET /v1/customers/:userId` | P2 | agent | Customers page |
 | Inbox | `GET /v1/inbox/counts`, `PATCH /v1/conversations/:id` (assign) | P0 | agent | Inbox tabs, assign menu |
-| Channels | `/v1/channels` (+rotate-key, test) | P0 | admin | Connections > Chat channel |
-| Relay | `POST /v1/relay/message`, `/events`, `/identify`, `GET /config` | P0 | relay key | **ChatFlow's server**, never the browser |
+| Channels | `/v1/channels` (+rotate-key, test) | **built** | admin | Connections > Chat channel |
+| Relay | `POST /v1/relay/message`, `/events`, `/identify`, `GET /config` | **built** | relay key | **ChatFlow's server**, never the browser |
 | Identity keys | `GET/PUT /v1/identity/key` | P1 | admin | Connections > Identity |
 | Account | `POST /v1/auth/forgot-password`, `/reset-password` | P1 | public | Login |
 
 ## Relay protocol (ChatFlow <-> Helply)
 Helply never calls ChatFlow; ChatFlow's server calls Helply (synchronously, from the place its `aiReplyService` calls Gemini today). A browser must never hold a relay key.
-- **Auth:** `Authorization: Bearer hr_live_...`. The key identifies exactly one channel and therefore one workspace. Rotating a key revokes the old one at once. `POST /v1/channels` returns the key once.
+- **Auth:** `Authorization: Bearer hr_live_...`. The key identifies exactly one channel and therefore one workspace. Rotating a key revokes the old one at once. `POST /v1/channels` returns the key once. Disconnecting deletes the channel and its key; transcripts stay.
 - **`POST /v1/relay/message`:** `externalConversationId` is ChatFlow's conversation id and is unique per channel: the first message creates the Helply conversation, later ones reuse it. `externalVisitorId` is ChatFlow's visitor UUID. `identityToken` is optional (see below); without a valid one the visitor is anonymous. ChatFlow should send the freshest token it has on every message.
 - **Reply semantics:** `reply` is what to show as an AI message (`isAi: true` in ChatFlow). `reply: null` with `suppressed` set means "say nothing": `agent_online` (ChatFlow said `agentOnline: true`), `human_taken_over` (Helply conversation already in `human` status), `ai_paused` (workspace not live), `cap_reached`, `outside_hours` (per handoff rules). `needsHuman: true` means ChatFlow should route to its inbox and notify agents; the AI keeps its text in `reply` for the customer. `held: true` means the reply is waiting in Helply's review queue and `reply.text` is a holding message. `requiresAuth: true` means the customer asked about their account but is anonymous: ChatFlow should prompt sign-in.
 - **Timeouts:** Helply targets under 20 s; ChatFlow must give up at 25 s and show its own fallback (`GET /v1/relay/config` returns `fallbackMessage`). A failed call must never lose the visitor's message.
 - **`POST /v1/relay/events`:** keeps Helply's transcript and state in step with ChatFlow's inbox. `agent_joined` moves the conversation to `human` (AI goes silent); `agent_left` leaves it `human` until `conversation_reopened`/a new AI-eligible state is set by an admin; `agent_message` mirrors a human reply into the transcript; `conversation_closed` resolves it. Unknown `externalConversationId` returns `404 conversation_not_found`.
-- **`POST /v1/relay/identify`:** call when the widget receives a refreshed identity token, so the next message does not depend on it being resent. Returns `verified` and the token's expiry. Identity is still re-verified on every relayed message; this call stores nothing the relay cannot recompute except the visitor-to-customer link (below).
+- **`POST /v1/relay/identify`:** call when the widget receives a refreshed identity token, so the next message does not depend on it being resent. Returns `verified` and the token's expiry. It stores nothing: identity is re-verified on every relayed message.
 - **Errors:** `401 invalid_relay_key`, `403 channel_disabled`, `404 conversation_not_found`, `400 message_required|message_too_long`, `429 rate_limited` (per channel), `503 llm_not_configured`.
 - **Privacy:** only the message text, the token and the two external ids cross; no visitor name/email/phone is sent or stored by Helply.
 
@@ -42,11 +44,11 @@ Today's token (HS256, shared secret, `sub`, `iat`, `exp <= 900 s`, optional `nam
 | Claim | Meaning | If present |
 |---|---|---|
 | `aud` | `"helply"` | must equal `helply` |
-| `jti` | unique token id | Helply may reject a replay inside the token's lifetime |
+| `jti` | unique token id | read and returned in claims; replay rejection is NOT enforced yet |
 | `vid` | ChatFlow `externalVisitorId` | must equal the relayed `externalVisitorId`, so a stolen token cannot be used from another visitor |
 | `kid` | key id | selects the public key (public-key mode) |
 Modes (`GET/PUT /v1/identity/key`): `shared_secret` (default; workspace secret) or `public_key` (RS256/ES256; Helply stores only the public key as PEM or JWKS URL; JWKS fetches use the SSRF-safe client, are cached and capped). `alg: none`, mismatched algorithms and lifetimes over 900 s are always rejected. **Verification order:** parse, algorithm allowed for the workspace, signature, `exp`/`iat`/lifetime, `aud`, `vid`, `sub`. Any failure means anonymous (never an error that reveals why to the visitor).
-**Identity link:** after a successful verify, Helply records `(workspace, channel, externalVisitorId) -> customerId` on the conversation so later anonymous-looking messages in the same ChatFlow conversation still show who it was in the dashboard. The link is informational: **no log lookup ever uses it**; lookups use only the identity verified on that very message.
+**Identity link (built, informational):** `channel_conversations` records `(channel, externalConversationId) -> conversation, externalVisitorId, customerId` so the dashboard shows who it was even when a later message arrives without a valid token. **No log lookup ever uses the link**; lookups use only the identity verified on that very message. A different verified customer on the same ChatFlow conversation gets a new Helply conversation.
 
 ## Behaviour of the new building blocks
 - **Onboarding (`GET /v1/onboarding`):** steps are computed, never stored: `workspace` always done; `logs_shipped` is `their_side` until the last log-source test found `metadata.userId`, then `done`; `log_source`/`identity` from the connection tests; `business_profile` done when name, about, hours and one escalation contact exist; `knowledge` done at >= 5 enabled FAQs or >= 1 document; `channel` done when a channel has been called; `test` done once `POST /v1/onboarding/test` succeeded in the last 7 days; `live` is the stored `ai_live` flag. `readyForLive` is true when all steps before `live` are `done`. `go-live` returns `409 not_ready` otherwise.
@@ -64,11 +66,11 @@ Modes (`GET/PUT /v1/identity/key`): `shared_secret` (default; workspace secret) 
 Audit: `channel_connected`, `channel_key_rotated`, `channel_disconnected`, `onboarding_test`, `ai_live_changed`, `business_profile_changed`, `faq_*`, `playbook_*`, `handoff_rules_changed`, `identity_key_changed`, `knowledge_gap_resolved`, `issue_status_changed`, `issue_customers_notified`, `password_reset`. Webhook events to add: `issue.created`, `issue.regression`, `knowledge_gap.created`.
 
 ## Storage (migration 002, sketch)
-`business_profiles`, `faqs`, `knowledge_sites`, `playbooks`, `handoff_rules`, `knowledge_gaps`, `issues`, `channels` (hashed relay key), `channel_conversations` (`workspace_id, channel_id, external_conversation_id -> conversation_id`, unique), `identity_links`, `message_feedback`, `password_resets`, and `workspaces.ai_live`. Every table carries `workspace_id`; the schema test already enforces this.
+`business_profiles`, `faqs`, `knowledge_sites`, `playbooks`, `handoff_rules`, `knowledge_gaps`, `issues`, `channels` (hashed relay key), `channel_conversations` (`workspace_id, channel_id, external_conversation_id -> conversation_id`, unique), `identity_links`, `message_feedback`, `password_resets`, and the `aiLive` workspace setting (built; `false` = paused). Every table carries `workspace_id`; the schema test already enforces this.
 Route-order note: register `GET /v1/knowledge/sites` before `GET /v1/knowledge/:id`.
 
 ## Backend build order
-1. Relay + channels + external ids (unblocks ChatFlow) and `ai_live`/pause.
+1. ~~Relay + channels + external ids (unblocks ChatFlow) and the pause switch.~~ **Done.** Still open from this step: `cap_reached` and `outside_hours` suppression (need business hours / handoff rules), `jti` replay checks.
 2. Business profile, FAQ, onboarding computed steps + `onboarding/test`.
 3. Inbox counts, assign, then issues, playbooks, handoff rules.
 4. Knowledge gaps, feedback and quality.

@@ -114,7 +114,7 @@ const createSupportAgent = ({ config, llm, language, store, fetchImpl = fetch, n
     if (message.length > config.limits.maxMessageChars) throw new HttpError(400, "message_too_long", "Message is too long");
 
     const identity = token
-      ? verify(token, secret, { now: now(), maxAgeSeconds: config.tokenMaxAgeSeconds })
+      ? verify(token, secret, { visitorId: ctx.visitorId, now: now(), maxAgeSeconds: config.tokenMaxAgeSeconds })
       : { ok: false, reason: "none" };
     mark("identity", { verified: identity.ok, ...(identity.ok ? {} : { reason: identity.reason }) });
 

@@ -1220,7 +1220,7 @@ paths:
     post:
       tags:
         - Connections
-      summary: Mint a customer token (API key scope identity:mint, or admin session)
+      summary: Mint a customer token (API key scope identity:mint, or admin session). Optional visitorId binds it to one chat visitor (claim vid)
       operationId: post_v1_identity_tokens
       security:
         - sessionAuth: []
@@ -1237,6 +1237,8 @@ paths:
                 userId:
                   type: string
                 name:
+                  type: string
+                visitorId:
                   type: string
               required:
                 - userId
@@ -4664,8 +4666,6 @@ paths:
         - Channels
       summary: Connected channels (ChatFlow properties)
       operationId: get_v1_channels
-      x-planned: true
-      x-priority: P0
       security:
         - sessionAuth: []
       x-min-role: admin
@@ -4706,8 +4706,6 @@ paths:
         - Channels
       summary: Connect a ChatFlow property; returns the relay key once
       operationId: post_v1_channels
-      x-planned: true
-      x-priority: P0
       security:
         - sessionAuth: []
       x-min-role: admin
@@ -4767,8 +4765,6 @@ paths:
           required: true
           schema:
             type: string
-      x-planned: true
-      x-priority: P0
       security:
         - sessionAuth: []
       x-min-role: admin
@@ -4805,8 +4801,6 @@ paths:
           required: true
           schema:
             type: string
-      x-planned: true
-      x-priority: P0
       security:
         - sessionAuth: []
       x-min-role: admin
@@ -4855,8 +4849,6 @@ paths:
           required: true
           schema:
             type: string
-      x-planned: true
-      x-priority: P0
       security:
         - sessionAuth: []
       x-min-role: admin
@@ -4891,8 +4883,6 @@ paths:
         - Relay
       summary: ChatFlow server relays a visitor message and gets the AI reply
       operationId: post_v1_relay_message
-      x-planned: true
-      x-priority: P0
       security:
         - relayAuth: []
       x-min-role: relay
@@ -4958,8 +4948,6 @@ paths:
         - Relay
       summary: ChatFlow tells Helply what happened in its inbox
       operationId: post_v1_relay_events
-      x-planned: true
-      x-priority: P0
       security:
         - relayAuth: []
       x-min-role: relay
@@ -5023,8 +5011,6 @@ paths:
         - Relay
       summary: Refresh a visitor's verified identity when the widget gets a new token
       operationId: post_v1_relay_identify
-      x-planned: true
-      x-priority: P0
       security:
         - relayAuth: []
       x-min-role: relay
@@ -5083,8 +5069,6 @@ paths:
         - Relay
       summary: What ChatFlow needs to know before relaying
       operationId: get_v1_relay_config
-      x-planned: true
-      x-priority: P0
       security:
         - relayAuth: []
       x-min-role: relay
@@ -5952,12 +5936,15 @@ components:
           type: boolean
         brandColor:
           type: string
+        aiLive:
+          type: boolean
       required:
         - languages
         - escalationThreshold
         - retentionDays
         - holdFlaggedReplies
         - brandColor
+        - aiLive
     Workspace:
       type: object
       properties:

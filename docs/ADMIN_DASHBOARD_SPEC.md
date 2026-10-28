@@ -31,11 +31,11 @@ Several customers hit the same failure -> they appear as **one issue** with coun
 ### Workflow D: the AI missed a question (admin)
 Customers ask something no FAQ or document covers -> it appears in **Knowledge gaps** with a count -> admin writes the answer once ("Create FAQ from this") -> the gap closes and the AI answers next time.
 
-### Workflow E: linking ChatFlow (admin)
+### Workflow E: linking ChatFlow (admin; backend built, see `docs/CHATFLOW_INTEGRATION.md`)
 Connections > Chat channel > "Connect ChatFlow" (label + ChatFlow widget id) -> relay key shown once with copy and a short "paste this in ChatFlow: property > AI assistant" guide -> status goes `pending` to `connected` when ChatFlow first calls Helply -> "Send test" confirms. Rotating or disconnecting a key asks for confirmation and explains what stops working.
 
 ## 3. Navigation and routes
-Top bar: workspace name; **AI status** switch (Live / Paused; Paused sends everything to people; confirm dialog; admin only); **Setup n/9** badge while not live; user menu (profile, sign out). Sidebar groups, in this order:
+Top bar: workspace name; **AI status** switch (Live / Paused; Paused sends everything to people; confirm dialog; admin only). Backend is built: `PATCH /v1/workspace` with `{ settings: { aiLive } }`; the same switch moves to `onboarding/go-live|pause` when those ship; **Setup n/9** badge while not live; user menu (profile, sign out). Sidebar groups, in this order:
 | Group | Page | Route | Min role | Status |
 |---|---|---|---|---|
 | Work | Inbox | `/app/inbox` (replaces Conversations) | agent | Page todo + Planned counts (P0) |
@@ -52,7 +52,7 @@ Top bar: workspace name; **AI status** switch (Live / Paused; Paused sends every
 | | Playbooks | `/app/business/playbooks` | agent (edit: admin) | Planned P1 |
 | | Handoff rules | `/app/business/handoff` | agent (edit: admin) | Planned P1 |
 | Setup | Onboarding | `/app/onboarding` | agent (act: admin) | Planned P0 |
-| | Connections | `/app/connections` (Logs, Identity, Chat channel tabs) | admin | Built (logs, identity) / Planned P0 (channel) |
+| | Connections | `/app/connections` (Logs, Identity, Chat channel tabs) | admin | Built (logs, identity, **chat channel: backend built**, page todo) |
 | | Developers | `/app/developers` | admin | Built |
 | | Team | `/app/team` | admin | Built |
 | | Customers | `/app/customers`, `/:id` | agent | Planned P2 |
@@ -87,7 +87,7 @@ Login adds "Forgot password" (Planned P1). Role gating hides links but the API i
 
 **Review queue** (built). Add the conversation's language and the customer's message (already returned).
 
-**Connections** (built; add tab). Tabs: Logs (existing + the `no metadata.userId` guidance), Identity (existing; P1 adds mode switch: shared secret or public key with PEM/JWKS and key id), **Chat channel** (planned P0: list channels, connect, rotate key, test, disconnect; key shown once).
+**Connections** (built; add tab). Channel routes are **real** now: use the real backend, not the mock. Tabs: Logs (existing + the `no metadata.userId` guidance), Identity (existing; P1 adds mode switch: shared secret or public key with PEM/JWKS and key id), **Chat channel** (planned P0: list channels, connect, rotate key, test, disconnect; key shown once).
 
 **Customers** (planned P2). Search by id/name; detail shows counts and links to conversations/tickets; **no log lines**; "Erase this customer's data" lives here and in Settings.
 

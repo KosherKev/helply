@@ -52,6 +52,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   retentionDays: 30,
   holdFlaggedReplies: false,
   brandColor: "#0F7B4F",
+  aiLive: true, // false = paused: every customer message goes to a person, no model or log work
 });
 
 const createRepo = (db) => {
@@ -176,6 +177,9 @@ const createRepo = (db) => {
     return getConversation(ws, id);
   };
   const getConversation = (ws, id) => toConversation(q("SELECT * FROM conversations WHERE workspace_id = ? AND id = ?").get(need(ws), String(id)));
+  /** Bind a verified customer to a conversation once (never overwrites an existing binding). */
+  const bindConversationCustomer = (ws, id, customerId, name = null) =>
+    q("UPDATE conversations SET customer_id = ?, customer_name = COALESCE(customer_name, ?) WHERE workspace_id = ? AND id = ? AND customer_id IS NULL").run(customerId, name, need(ws), String(id)).changes > 0;
   const updateConversation = (ws, id, patch) => {
     const cur = getConversation(ws, id);
     if (!cur) return null;
@@ -378,6 +382,36 @@ const createRepo = (db) => {
   const listDeliveries = (ws, webhookId, limit = 50) =>
     q("SELECT id, event, status, attempts, response_status AS responseStatus, error, created_at AS createdAt FROM webhook_deliveries WHERE workspace_id = ? AND webhook_id = ? ORDER BY seq DESC LIMIT ?").all(need(ws), String(webhookId), clampLimit(limit, 50));
 
+  // ── channels (ChatFlow) ───────────────────────────────────────────────
+  const toChannel = (r) => r && { id: r.id, kind: r.kind, label: r.label, externalId: r.external_id, status: r.status, lastSeenAt: r.last_seen_at, keyPrefix: r.key_prefix, createdAt: r.created_at };
+  const createChannel = (ws, { kind, label, externalId, keyHash, keyPrefix }) => {
+    const id = newId("ch");
+    q("INSERT INTO channels (id, workspace_id, kind, label, external_id, key_hash, key_prefix, created_at) VALUES (?,?,?,?,?,?,?,?)").run(id, need(ws), kind, String(label).slice(0, 60), String(externalId).slice(0, 128), keyHash, keyPrefix, now());
+    return getChannel(ws, id);
+  };
+  const getChannel = (ws, id) => toChannel(q("SELECT * FROM channels WHERE workspace_id = ? AND id = ?").get(need(ws), String(id)));
+  const findChannelByExternalId = (kind, externalId) => q("SELECT id FROM channels WHERE kind = ? AND external_id = ?").get(kind, String(externalId)) || null;
+  const listChannels = (ws) => q("SELECT * FROM channels WHERE workspace_id = ? ORDER BY created_at").all(need(ws)).map(toChannel);
+  /** Credential lookup: the relay key is the secret. Returns the channel and its workspace. */
+  const getChannelByKeyHash = (h) => {
+    const r = q("SELECT * FROM channels WHERE key_hash = ?").get(String(h));
+    return r ? { ...toChannel(r), workspaceId: r.workspace_id } : null;
+  };
+  const rotateChannelKey = (ws, id, { keyHash, keyPrefix }) =>
+    q("UPDATE channels SET key_hash = ?, key_prefix = ?, status = 'pending', last_seen_at = NULL WHERE workspace_id = ? AND id = ?").run(keyHash, keyPrefix, need(ws), String(id)).changes > 0;
+  const deleteChannel = (ws, id) => q("DELETE FROM channels WHERE workspace_id = ? AND id = ?").run(need(ws), String(id)).changes > 0;
+  const touchChannel = (ws, id) => q("UPDATE channels SET status = 'connected', last_seen_at = ? WHERE workspace_id = ? AND id = ?").run(now(), need(ws), String(id));
+  const getChannelConversation = (ws, channelId, externalConversationId) => {
+    const r = q("SELECT * FROM channel_conversations WHERE workspace_id = ? AND channel_id = ? AND external_conversation_id = ?").get(need(ws), String(channelId), String(externalConversationId));
+    return r && { channelId: r.channel_id, externalConversationId: r.external_conversation_id, conversationId: r.conversation_id, externalVisitorId: r.external_visitor_id, customerId: r.customer_id };
+  };
+  /** Maps (channel, their conversation id) to ours; remapping replaces the target (used when a different verified customer appears). */
+  const linkChannelConversation = (ws, { channelId, externalConversationId, conversationId, externalVisitorId = null, customerId = null }) =>
+    q(
+      `INSERT INTO channel_conversations (workspace_id, channel_id, external_conversation_id, conversation_id, external_visitor_id, customer_id, created_at) VALUES (?,?,?,?,?,?,?)
+       ON CONFLICT(channel_id, external_conversation_id) DO UPDATE SET conversation_id = excluded.conversation_id, external_visitor_id = excluded.external_visitor_id, customer_id = excluded.customer_id`
+    ).run(need(ws), String(channelId), String(externalConversationId), conversationId, externalVisitorId, customerId, now());
+
   // ── analytics ─────────────────────────────────────────────────────────
   const range = (from, to) => ({ f: from || "0000", t: to || "9999" });
   const analyticsSummary = (ws, { from, to } = {}) => {
@@ -455,11 +489,12 @@ const createRepo = (db) => {
     createSession, getSessionByHash, deleteSessionByHash,
     createApiKey, listApiKeys, getApiKeyByHash, touchApiKey, revokeApiKey,
     getLogSource, putLogSource,
-    createConversation, getConversation, updateConversation, listConversations, addMessage, getMessage, listMessages, updateMessage, listPendingMessages,
+    createConversation, getConversation, bindConversationCustomer, updateConversation, listConversations, addMessage, getMessage, listMessages, updateMessage, listPendingMessages,
     createTicket, getTicket, listTickets, updateTicket, addNote, listNotes,
     addKnowledge, listKnowledge, getKnowledge, updateKnowledge, reindexKnowledge, deleteKnowledge, retrieve,
     addAudit, listAudit,
     createWebhook, getWebhook, getWebhookSecretEnc, listWebhooks, listWebhooksForEvent, deleteWebhook, addDelivery, updateDelivery, listDeliveries,
+    createChannel, getChannel, findChannelByExternalId, listChannels, getChannelByKeyHash, rotateChannelKey, deleteChannel, touchChannel, getChannelConversation, linkChannelConversation,
     analyticsSummary, analyticsTimeseries, eraseCustomer, purgeOlderThan,
   };
 };
