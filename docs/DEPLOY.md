@@ -97,6 +97,7 @@ One Render **Web Service** can serve both the API and the website: the API serve
 - **Free instances sleep** after ~15 minutes idle; the first request takes about a minute. Wake it before presenting.
 
 ## Appendix: the current hosted pair (Render API + Vercel site)
+**What Vercel serves now:** the combined `site/deploy` folder: `/` is the Next.js landing page from `site/`, `/demo` and `/app/*` are the Vite web app from `web/`, and `/v1/*`, `/health` are proxied to Render (`site/vercel.json`). Redeploy everything with `site/scripts/deploy-vercel.sh` (builds both, assembles, deploys to the `helply-web` project). The older `web/vercel.json` setup (web app alone at `/`) is superseded; do not deploy `web/` directly. The web build must not contain a `brand/` folder (the landing page owns `/brand`), which is why `web/public/brand` was removed.
 **Vercel project `helply-web`** (one project serves BOTH the landing page and the dashboard: they are the same Vite app, `/` and `/app`). `web/vercel.json` proxies `/v1/*` and `/health` to the Render API, so the browser is same-origin. Build-time variables (all optional):
 | Variable | Value | Notes |
 |---|---|---|

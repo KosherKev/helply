@@ -150,6 +150,10 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 - **Frontend env:** one Vercel project serves landing and dashboard; `VITE_API_URL` stays unset (same-origin via the rewrite); `VITE_GITHUB_URL` set on Vercel and the wrong default (`kevinafenyo`) fixed to `KosherKev`; table in `docs/DEPLOY.md`.
 - **Config fix:** `ALLOW_PRIVATE_LOG_SOURCES` can now be forced to `false` in demo mode (it used to be always on there).
 
+### 2026-10-28 (landing page is the homepage)
+- **Production now serves the developer's `site/` landing page at `/`** (Next.js static export with the 3D world) and the Vite web app at `/demo` and `/app/*`, assembled by `site/scripts/assemble.mjs` into `site/deploy` and deployed with `site/scripts/deploy-vercel.sh` to **https://helply-web-bice.vercel.app** (same Vercel project as before). `site/vercel.json` carries the API proxy rewrites (`/v1/*`, `/health` to Render) and the `/demo` and `/app` deep-link fallbacks. Verified in production: `/`, `/demo`, `/app`, `/app/login`, `/app/tickets/T-0001`, `/health`, `/v1/config` all respond; the landing page loads with no console errors, its demo links go to `/demo`, its GitHub links point to `KosherKev/helply`.
+- Removed `web/public/brand` (duplicate of `site/public/brand`; the assemble step refuses duplicate names). The old Vite homepage (`web/src/pages/Home.tsx`) is no longer reachable in production but still exists in the web app for standalone dev.
+
 ## Known Limitations
 
 1. ~~In-memory store.~~ Resolved: SQLite (`HELPLY_DB_PATH`, default `.data/helply.db` for `npm start`). Tests use `:memory:`.
