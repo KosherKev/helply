@@ -200,5 +200,5 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
   - Captures of the loader, trail, entry and flash hand-off, compared with Emotion's.
   - Lighthouse mobile 94/100/100/100; 0.6% of frames over 20 ms at 4x CPU slowdown; no console errors.
 - **Not done:** fluid-sim trail (KL-27); Safari check (KL-28).
-- **Commit:** see the next entry.
+- **Commit:** `d87d733` on branch `landing-page`.
 
