@@ -157,5 +157,5 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
   - `/demo` and `/app/*` load from `site/deploy`
   - root `npm test` 73/73
 - **Deliberately not done:** editing `web/`; deploying; crediting individual photographers.
-- **Commit:** `COMMIT_PENDING` on branch `landing-page`.
+- **Commit:** `22fafcb` on branch `landing-page`.
 
