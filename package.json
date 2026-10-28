@@ -10,6 +10,7 @@
     "test": "node --experimental-sqlite --test",
     "seed": "node scripts/seed-logs.js",
     "check:khaya": "node scripts/check-khaya.js",
+    "verify:live": "node scripts/verify-live.js",
     "dev:mock": "node --experimental-sqlite scripts/dev-mock-server.js"
   },
   "engines": {
