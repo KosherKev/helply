@@ -39,11 +39,11 @@ export default function Tickets() {
       <Tabs label="Status" value={status} onChange={setStatus} tabs={[{ id: 'all', label: 'All' }, { id: 'needs_human', label: 'Needs human' }, { id: 'open', label: 'Open' }, { id: 'resolved', label: 'Resolved' }]} />
       <div className="my-3 flex flex-wrap gap-2">
         <label className="sr-only" htmlFor="tq">Search tickets</label>
-        <input id="tq" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search title, message, customer id" className="min-w-[220px] flex-1 rounded-lg border border-line bg-card px-3 py-2 text-sm" />
+        <input id="tq" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search title, message, customer id" className="min-w-[220px] flex-1 rounded-xl border border-line bg-white px-3 py-2 text-sm" />
         <label className="sr-only" htmlFor="tp">Priority</label>
-        <select id="tp" value={priority} onChange={(e) => setPriority(e.target.value)} className="rounded-lg border border-line bg-card px-3 py-2 text-sm"><option value="">Any priority</option>{['urgent', 'high', 'normal', 'low'].map((p) => <option key={p}>{p}</option>)}</select>
+        <select id="tp" value={priority} onChange={(e) => setPriority(e.target.value)} className="rounded-xl border border-line bg-white px-3 py-2 text-sm"><option value="">Any priority</option>{['urgent', 'high', 'normal', 'low'].map((p) => <option key={p}>{p}</option>)}</select>
         <label className="sr-only" htmlFor="ta">Assignee</label>
-        <select id="ta" value={assignee} onChange={(e) => setAssignee(e.target.value)} className="rounded-lg border border-line bg-card px-3 py-2 text-sm"><option value="">Anyone</option>{members.data?.data.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select>
+        <select id="ta" value={assignee} onChange={(e) => setAssignee(e.target.value)} className="rounded-xl border border-line bg-white px-3 py-2 text-sm"><option value="">Anyone</option>{members.data?.data.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select>
       </div>
       {error && <ErrorBanner message={error} onRetry={() => void load()} />}
       {loading && <Spinner />}
@@ -52,12 +52,12 @@ export default function Tickets() {
         <Card className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-sm">
             <caption className="sr-only">Tickets</caption>
-            <thead className="bg-[#f4f2e8] text-xs uppercase tracking-wide text-muted"><tr>{['ID', 'Title', 'Customer', 'Language', 'Status', 'Assignee', 'Created'].map((h) => <th key={h} scope="col" className="px-3 py-2">{h}</th>)}</tr></thead>
+            <thead className="bg-ice text-xs uppercase tracking-wide text-muted"><tr>{['ID', 'Title', 'Customer', 'Language', 'Status', 'Assignee', 'Created'].map((h) => <th key={h} scope="col" className="px-3 py-2">{h}</th>)}</tr></thead>
             <tbody>
               {rows.map((t) => (
-                <tr key={t.id} className="border-t border-line hover:bg-paper">
-                  <td className="px-3 py-2 font-medium"><Link className="text-green underline" to={`/app/tickets/${t.id}`}>{t.id}</Link></td>
-                  <td className="max-w-[280px] truncate px-3 py-2">{t.priority !== 'normal' && <span className="mr-1 rounded bg-gold-50 px-1 text-xs font-medium">{t.priority}</span>}{t.title}</td>
+                <tr key={t.id} className="border-t border-line hover:bg-ice">
+                  <td className="px-3 py-2 font-medium"><Link className="text-blue underline" to={`/app/tickets/${t.id}`}>{t.id}</Link></td>
+                  <td className="max-w-[280px] truncate px-3 py-2">{t.priority !== 'normal' && <span className="mr-1 rounded bg-warn-50 px-1 text-xs font-medium text-warn">{t.priority}</span>}{t.title}</td>
                   <td className="log-mono px-3 py-2">{t.userId ?? '—'}</td>
                   <td className="px-3 py-2"><LangBadge code={t.language} /></td>
                   <td className="px-3 py-2"><StatusPill status={t.status} /></td>

@@ -26,7 +26,7 @@ function Bars({ rows, label }: { rows: { key: string; label: string; count: numb
       {rows.map((r) => (
         <li key={r.key}>
           <div className="flex justify-between text-sm"><span>{r.label}</span><span className="font-medium">{r.count}</span></div>
-          <div className="mt-0.5 h-2 rounded-full bg-[#efede3]"><div className="h-2 rounded-full bg-green" style={{ width: `${(r.count / max) * 100}%` }} /></div>
+          <div className="mt-0.5 h-2 rounded-full bg-line"><div className="h-2 rounded-full bg-blue" style={{ width: `${(r.count / max) * 100}%` }} /></div>
         </li>
       ))}
     </ul>
@@ -42,15 +42,15 @@ function Series({ points }: { points: { bucket: string; count: number }[] }) {
   return (
     <figure>
       <svg viewBox={`0 0 ${w} ${h + 22}`} role="img" aria-label={`Conversations per day, ${points.reduce((n, p) => n + p.count, 0)} in total`} className="w-full">
-        <line x1={pad} y1={h} x2={w - pad} y2={h} stroke="#E4E2D8" />
+        <line x1={pad} y1={h} x2={w - pad} y2={h} stroke="#DBEAFE" />
         {points.map((p, i) => {
           const x = pad + (i + 0.5) * ((w - pad * 2) / points.length)
           const bh = (p.count / max) * (h - 24)
           return (
             <g key={p.bucket}>
-              <rect x={x - bw / 2} y={h - bh} width={bw} height={bh} rx={4} fill="#0F7B4F"><title>{`${p.bucket}: ${p.count}`}</title></rect>
-              <text x={x} y={h - bh - 4} textAnchor="middle" fontSize="11" fill="#10201A">{p.count}</text>
-              <text x={x} y={h + 15} textAnchor="middle" fontSize="10" fill="#5B6B63">{p.bucket.slice(5)}</text>
+              <rect x={x - bw / 2} y={h - bh} width={bw} height={bh} rx={4} fill="#2563EB"><title>{`${p.bucket}: ${p.count}`}</title></rect>
+              <text x={x} y={h - bh - 4} textAnchor="middle" fontSize="11" fill="#0F172A">{p.count}</text>
+              <text x={x} y={h + 15} textAnchor="middle" fontSize="10" fill="#475569">{p.bucket.slice(5)}</text>
             </g>
           )
         })}
@@ -73,13 +73,13 @@ export default function Overview() {
     <div>
       <PageTitle title="Overview">
         <label className="text-sm text-muted" htmlFor="range">Period</label>
-        <select id="range" value={range} onChange={(e) => setRange(e.target.value)} className="rounded-lg border border-line bg-card px-3 py-1.5 text-sm">
+        <select id="range" value={range} onChange={(e) => setRange(e.target.value)} className="rounded-xl border border-line bg-white px-3 py-1.5 text-sm">
           {RANGES.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
         </select>
       </PageTitle>
       {sum.error && <ErrorBanner message={sum.error} onRetry={() => void sum.reload()} />}
       {sum.loading && !s && <Spinner />}
-      {s && s.conversations === 0 && range !== 'all' && <div className="mb-4"><EmptyState title="No conversations in this period">Try “All time”, or ask something in the <Link className="text-green underline" to="/demo">live demo</Link>.</EmptyState></div>}
+      {s && s.conversations === 0 && range !== 'all' && <div className="mb-4"><EmptyState title="No conversations in this period">Try “All time”, or ask something in the <Link className="text-blue underline" to="/demo">live demo</Link>.</EmptyState></div>}
       {s && (
         <>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -96,20 +96,20 @@ export default function Overview() {
               <h2 className="mb-3 text-lg">Top root causes</h2>
               {s.topRootCauses.length === 0 ? <p className="text-sm text-muted">No root causes found yet.</p> : (
                 <ol className="space-y-2">{s.topRootCauses.map((c) => (
-                  <li key={c.fingerprint} className="flex items-start justify-between gap-3 rounded-lg border border-line p-3 text-sm">
+                  <li key={c.fingerprint} className="flex items-start justify-between gap-3 rounded-xl border border-line p-3 text-sm">
                     <span>{c.summary ?? 'Unknown'}<span className="mt-0.5 block text-xs text-muted">last seen {relTime(c.lastSeen)}</span></span>
-                    <span className="shrink-0 rounded-full bg-gold-50 px-2.5 py-0.5 font-medium">{c.count}×</span>
+                    <span className="shrink-0 rounded-full bg-warn-50 px-2.5 py-0.5 font-medium text-warn">{c.count}×</span>
                   </li>
                 ))}</ol>
               )}
             </Card>
           </div>
           <Card className="mt-4 p-4">
-            <div className="mb-2 flex items-center justify-between"><h2 className="text-lg">Tickets needing a human <span className="text-sm font-normal text-muted">({s.ticketsNeedingHuman})</span></h2><Link className="text-sm font-medium text-green underline" to="/app/tickets">All tickets</Link></div>
+            <div className="mb-2 flex items-center justify-between"><h2 className="text-lg">Tickets needing a human <span className="text-sm font-normal text-muted">({s.ticketsNeedingHuman})</span></h2><Link className="text-sm font-medium text-blue underline" to="/app/tickets">All tickets</Link></div>
             {need.loading && !need.data ? <Spinner /> : need.error ? <ErrorBanner message={need.error} onRetry={() => void need.reload()} /> : need.data?.data.length === 0 ? <p className="text-sm text-muted">Nothing is waiting for a person. 🎉</p> : (
               <ul className="divide-y divide-line">{need.data?.data.map((t) => (
                 <li key={t.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
-                  <Link className="font-medium text-green underline" to={`/app/tickets/${t.id}`}>{t.id}</Link>
+                  <Link className="font-medium text-blue underline" to={`/app/tickets/${t.id}`}>{t.id}</Link>
                   <span className="min-w-0 flex-1 truncate">{t.title}</span>
                   <LangBadge code={t.language} /><StatusPill status={t.status} /><span className="text-xs text-muted">{relTime(t.createdAt)}</span>
                 </li>

@@ -37,9 +37,9 @@ export default function Conversations() {
       <Tabs label="Status" value={status} onChange={setStatus} tabs={[{ id: 'all', label: 'All' }, { id: 'needs_human', label: 'Needs human' }, { id: 'human', label: 'With a person' }, { id: 'ai', label: 'AI replying' }, { id: 'resolved', label: 'Resolved' }]} />
       <div className="my-3 flex flex-wrap gap-2">
         <label className="sr-only" htmlFor="q">Search</label>
-        <input id="q" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search messages or customer id" className="min-w-[220px] flex-1 rounded-lg border border-line bg-card px-3 py-2 text-sm" />
+        <input id="q" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search messages or customer id" className="min-w-[220px] flex-1 rounded-xl border border-line bg-white px-3 py-2 text-sm" />
         <label className="sr-only" htmlFor="lang">Language</label>
-        <select id="lang" value={lang} onChange={(e) => setLang(e.target.value)} className="rounded-lg border border-line bg-card px-3 py-2 text-sm">
+        <select id="lang" value={lang} onChange={(e) => setLang(e.target.value)} className="rounded-xl border border-line bg-white px-3 py-2 text-sm">
           <option value="">All languages</option>
           {['en', 'tw', 'gaa', 'ee', 'fat', 'dag', 'pcm'].map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
@@ -52,7 +52,7 @@ export default function Conversations() {
           <ul className="divide-y divide-line">
             {rows.map((c) => (
               <li key={c.id}>
-                <Link to={`/app/conversations/${c.id}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 hover:bg-paper">
+                <Link to={`/app/conversations/${c.id}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 hover:bg-ice">
                   <span className="w-40 shrink-0 truncate font-medium">{c.customerName ?? c.customerId ?? 'Anonymous'}</span>
                   <span className="min-w-0 flex-1 basis-60 truncate text-sm text-muted">{c.lastMessage ? <Plain text={c.lastMessage} /> : '—'}</span>
                   <LangBadge code={c.language} /><StatusPill status={c.status} />

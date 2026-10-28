@@ -19,11 +19,11 @@ function Item({ r, onDone }: { r: PendingReply; onDone: () => void }) {
   }
   return (
     <Card className="p-4">
-      <div className="flex flex-wrap items-center gap-2"><Chip tone={r.role === 'ai' ? 'neutral' : 'gold'}>{r.role === 'ai' ? 'AI reply' : 'Team reply'}</Chip><Link className="text-sm font-medium text-green underline" to={`/app/conversations/${r.conversationId}`}>Open conversation</Link><span className="text-xs text-muted">{relTime(r.createdAt)}</span></div>
+      <div className="flex flex-wrap items-center gap-2"><Chip tone={r.role === 'ai' ? 'neutral' : 'info'}>{r.role === 'ai' ? 'AI reply' : 'Team reply'}</Chip><Link className="text-sm font-medium text-blue underline" to={`/app/conversations/${r.conversationId}`}>Open conversation</Link><span className="text-xs text-muted">{relTime(r.createdAt)}</span></div>
       {r.customerMessage && <p className="mt-2 text-sm text-muted">Customer asked: <Plain text={r.customerMessage} /></p>}
       <label htmlFor={`t-${r.id}`} className="mt-3 block text-sm font-medium">Reply the customer would receive{r.language && r.language !== 'en' ? ` (${r.language})` : ''}</label>
-      <textarea id={`t-${r.id}`} rows={3} value={text} maxLength={1000} onChange={(e) => setText(e.target.value)} className="mt-1 w-full rounded-lg border border-line bg-paper px-3 py-2" />
-      {r.roundTrip && <div className="mt-2 grid gap-3 text-sm sm:grid-cols-2"><div><p className="text-muted">Back-translated</p><p><Plain text={r.roundTrip.backTranslation} /></p></div><div><Meter value={r.roundTrip.similarity} label="Similarity" tone="red" /></div></div>}
+      <textarea id={`t-${r.id}`} rows={3} value={text} maxLength={1000} onChange={(e) => setText(e.target.value)} className="mt-1 w-full rounded-xl border border-line bg-white px-3 py-2" />
+      {r.roundTrip && <div className="mt-2 grid gap-3 text-sm sm:grid-cols-2"><div><p className="text-muted">Back-translated</p><p><Plain text={r.roundTrip.backTranslation} /></p></div><div><Meter value={r.roundTrip.similarity} label="Similarity" tone="danger" /></div></div>}
       {err && <div className="mt-2"><ErrorBanner message={err} /></div>}
       <div className="mt-3 flex gap-2"><Button disabled={busy || !text.trim()} onClick={() => void decide('approve')}>{text !== r.text ? 'Approve edited reply' : 'Approve and send'}</Button><Button variant="secondary" disabled={busy} onClick={() => void decide('reject')}>Reject</Button></div>
     </Card>

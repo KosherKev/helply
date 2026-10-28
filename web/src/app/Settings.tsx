@@ -24,7 +24,7 @@ export default function Settings() {
     if (!window.confirm(`Permanently erase all conversations, messages and tickets for customer “${erase}”? This cannot be undone.`)) return
     try { const r = await call<{ erased: { conversations: number; messages: number; tickets: number } }>(`/v1/customers/${encodeURIComponent(erase)}/data`, { method: 'DELETE' }); setMsg({ ok: true, text: `Erased ${r.erased.conversations} conversations, ${r.erased.messages} messages and ${r.erased.tickets} tickets.` }); setErase('') } catch (e) { setMsg({ ok: false, text: explain(e) }) }
   }
-  const box = 'mt-1 w-full max-w-xs rounded-lg border border-line bg-paper px-3 py-2'
+  const box = 'mt-1 w-full max-w-xs rounded-xl border border-line bg-white px-3 py-2'
   return (
     <div>
       <PageTitle title="Settings" />
@@ -37,13 +37,13 @@ export default function Settings() {
           <p id="et-h" className="mt-1 max-w-lg text-xs text-muted">A translated reply whose back-translation matches the original less than this is flagged “needs review”. Higher is stricter.</p></div>
         <div><label htmlFor="rd" className="text-sm font-medium">Keep messages for (days)</label><input id="rd" type="number" min={1} max={365} value={s.retentionDays} onChange={(e) => setS({ ...s, retentionDays: Number(e.target.value) })} className={box} /></div>
         <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={s.holdFlaggedReplies} onChange={(e) => setS({ ...s, holdFlaggedReplies: e.target.checked })} /><span><span className="font-medium">Hold flagged replies for review</span><span className="block text-xs text-muted">Flagged replies wait in the review queue instead of going straight to the customer.</span></span></label>
-        {msg && <p role={msg.ok ? 'status' : 'alert'} className={`text-sm ${msg.ok ? 'text-green' : 'text-red'}`}>{msg.ok ? '✓ ' : '⚠ '}{msg.text}</p>}
+        {msg && <p role={msg.ok ? 'status' : 'alert'} className={`text-sm ${msg.ok ? 'text-ok' : 'text-danger'}`}>{msg.ok ? '✓ ' : '⚠ '}{msg.text}</p>}
         <Button disabled={busy} onClick={() => void save()}>{busy ? 'Saving…' : 'Save settings'}</Button>
       </Card>
-      <Card className="mt-5 border-red/30 p-5">
-        <h2 className="text-lg text-red">Erase a customer's data</h2>
+      <Card className="mt-5 border-danger/30 p-5">
+        <h2 className="text-lg text-danger">Erase a customer's data</h2>
         <p className="mt-1 max-w-xl text-sm text-muted">Deletes that customer's conversations, messages and tickets in this workspace (data protection requests). The erasure itself is recorded in the audit log.</p>
-        <div className="mt-3 flex flex-wrap gap-2"><label htmlFor="er" className="sr-only">Customer id</label><input id="er" value={erase} onChange={(e) => setErase(e.target.value)} placeholder="Customer id, e.g. usr_123" className="min-w-[220px] rounded-lg border border-line bg-paper px-3 py-2 text-sm" /><Button variant="danger" disabled={!erase.trim()} onClick={() => void doErase()}>Erase data</Button></div>
+        <div className="mt-3 flex flex-wrap gap-2"><label htmlFor="er" className="sr-only">Customer id</label><input id="er" value={erase} onChange={(e) => setErase(e.target.value)} placeholder="Customer id, e.g. usr_123" className="min-w-[220px] rounded-xl border border-line bg-white px-3 py-2 text-sm" /><Button variant="danger" disabled={!erase.trim()} onClick={() => void doErase()}>Erase data</Button></div>
       </Card>
       {msg && !msg.ok && <div className="mt-3"><ErrorBanner message={msg.text} /></div>}
     </div>
