@@ -31,6 +31,7 @@ In `npm run dev`, "Try the live demo" points at the web app's Vite dev server (`
 |---|---|
 | `NEXT_PUBLIC_BRAND` | Product name (copy never hard-codes it). Default `Helply`. |
 | `NEXT_PUBLIC_DEMO_URL` | Where "Try the live demo" and the assistant orb go. Default `/demo` (the `web/` app, same origin); `http://localhost:5173/demo` in dev. |
+| `NEXT_PUBLIC_API_URL` | Helply API the assistant orb chats with (`docs/openapi.yaml`: `/v1/config`, `/v1/demo/token`, `/v1/support/message`). Default `http://localhost:8787` in dev; unset in a build means the orb opens the live demo instead. The API's `CORS_ORIGIN` must allow this site's origin. |
 | `NEXT_PUBLIC_GITHUB_URL` | Public repository. Confirm before launch. |
 | `NEXT_PUBLIC_SITE_URL` | Public origin, for absolute Open Graph URLs. |
 
