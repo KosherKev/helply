@@ -234,3 +234,14 @@ test("optional same-origin web app: serves files and the SPA fallback, never sha
     assert.equal((await fetch(`${s.base}/missing.json`, { headers: { Accept: "application/json" } })).status, 404);
   } finally { await s.close(); fs.rmSync(dir, { recursive: true, force: true }); }
 });
+
+test("CORS_ORIGIN accepts a list and reflects only listed origins", async () => {
+  const s = await boot({ env: { CORS_ORIGIN: "https://helplygh.online, https://www.helplygh.online" } });
+  try {
+    const acao = async (origin) => (await fetch(`${s.base}/health`, { headers: origin ? { Origin: origin } : {} })).headers.get("access-control-allow-origin");
+    assert.equal(await acao("https://www.helplygh.online"), "https://www.helplygh.online");
+    assert.equal(await acao("https://helplygh.online"), "https://helplygh.online");
+    assert.equal(await acao("https://evil.example"), "https://helplygh.online", "unlisted origins never get their own origin echoed");
+    assert.equal((await fetch(`${s.base}/health`)).headers.get("vary"), "Origin");
+  } finally { await s.close(); }
+});

@@ -121,3 +121,17 @@ Change one with `cd web && vercel env add NAME production` then `vercel deploy -
 | `ALLOW_PRIVATE_LOG_SOURCES` | `false`: open sign-up on a public demo would otherwise let anyone point a log source at internal addresses |
 | `RATE_SUPPORT_IP`, `RATE_LOGIN_IP` | `300`, `60`: every visitor reaches Render through Vercel, so per-IP limits may see one shared address until `TRUST_PROXY` is set to the real hop count |
 | `CORS_ORIGIN`, `TRUST_PROXY` | not needed for the proxied setup (see above) |
+
+## Appendix: custom domain (helplygh.online, api.helplygh.online)
+Registrar: Namecheap. Vercel already has `helplygh.online` and `www.helplygh.online` attached to the `helply-web` project (CLI). Records to create at Namecheap (Domain List > Manage > Advanced DNS):
+| Type | Host | Value |
+|---|---|---|
+| A | `@` | `76.76.21.21` |
+| CNAME | `www` | `cname.vercel-dns.com` |
+| CNAME | `api` | `helply-pjww.onrender.com` |
+Remove any parking/URL-redirect records on `@` and `www` first. DNS takes minutes to hours; Vercel issues the certificate automatically (`vercel domains inspect helplygh.online` shows the state).
+**Render:** Settings > Custom Domains > add `api.helplygh.online` (Render verifies the CNAME and issues HTTPS). Then set `APP_URL=https://helplygh.online` and `CORS_ORIGIN=https://helplygh.online,https://www.helplygh.online` (a comma-separated list is supported; only listed origins are echoed back).
+**Switching the site to the API domain** once `https://api.helplygh.online/health` works:
+1. In `site/vercel.json` change the two rewrite destinations from `https://helply-pjww.onrender.com` to `https://api.helplygh.online`.
+2. Optional, lets the landing-page assistant orb chat with the API directly: `NEXT_PUBLIC_API_URL=https://api.helplygh.online site/scripts/deploy-vercel.sh` (needs the CORS_ORIGIN above; without it the orb just opens `/demo`).
+Redeploy with `site/scripts/deploy-vercel.sh`.

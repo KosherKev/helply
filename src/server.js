@@ -51,7 +51,8 @@ const buildApp = (config = load(), overrides = {}) => {
     req.id = crypto.randomUUID();
     res.set({
       "X-Request-Id": req.id,
-      "Access-Control-Allow-Origin": config.corsOrigin,
+      "Access-Control-Allow-Origin": corsFor(req),
+      Vary: "Origin",
       "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Console-Key, X-Helply-Public-Key",
       "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
       "Access-Control-Expose-Headers": "X-Request-Id, RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset",
@@ -61,6 +62,10 @@ const buildApp = (config = load(), overrides = {}) => {
     if (req.method === "OPTIONS") return res.sendStatus(204);
     return next();
   });
+
+  // CORS_ORIGIN may be one origin, "*", or a comma-separated list (reflect the caller's origin only if it is listed).
+  const corsList = String(config.corsOrigin).split(",").map((o) => o.trim()).filter(Boolean);
+  const corsFor = (req) => (corsList.length <= 1 ? corsList[0] || "*" : corsList.includes("*") ? "*" : corsList.includes(req.get("origin")) ? req.get("origin") : corsList[0]);
 
   const routes = [];
   const route = (method, path, ...handlers) => {

@@ -156,6 +156,12 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 
 - **Assistant orb talks to the API (user: "use this now", with `docs/openapi.yaml`; "don't touch the api").** The orb follows the web demo's flow, per the contract: `GET /v1/config`, then in demo mode `POST /v1/demo/token` for the first demo customer (server-signed, so identity still comes only from a verified token), then `POST /v1/support/message` carrying `conversationId`. It shows the reply, the English when the reply is in another language, and needs-human / sign-in notes, in an `aria-live` log. Errors become plain sentences with a link to the live demo. When `NEXT_PUBLIC_API_URL` is unset in a build, it opens `/demo` as before. No API code or `.env` was changed.
 
+### 2026-10-28 (domain, merge, sign in)
+- **Merged `origin/landing-page`** (the orb now chats through the Helply API; `site/src/lib/api.ts`) into `main`, no conflicts; 127 tests and `tsc` pass. **Not pushed** (waiting for the user).
+- **Landing page now links to the dashboard:** "Sign in" in the nav, mobile menu and footer (`DASHBOARD_URL`, default `/app/login`); GitHub default fixed to `KosherKev`.
+- **CORS_ORIGIN accepts a comma-separated list** (reflects only listed origins, `Vary: Origin`; +1 test).
+- **Domain:** `helplygh.online` and `www.helplygh.online` added to the Vercel project and the site redeployed (aliased to `https://helplygh.online`, which does not resolve until DNS is set). **DNS is NOT done** (Namecheap; I have no access): records and the Render custom-domain step are in `docs/DEPLOY.md`. The API domain `api.helplygh.online` does not exist yet; `site/vercel.json` still proxies to the onrender.com address.
+
 ## Known Limitations
 
 1. ~~In-memory store.~~ Resolved: SQLite (`HELPLY_DB_PATH`, default `.data/helply.db` for `npm start`). Tests use `:memory:`.
