@@ -39,7 +39,7 @@ const createAuth = ({ repo, config, defaultWorkspaceId }) => {
    * Guard factory.
    * @param {{role?:"agent"|"admin"|"owner", scope?:string, apiKey?:boolean, legacyOpen?:boolean}} rule
    */
-  const guard = ({ role = "agent", scope = null, legacyOpen = false } = {}) => (req, res, next) => {
+  const guard = ({ role = "agent", scope = null, legacyOpen = false } = {}) => Object.assign((req, res, next) => {
     const p = req.principal;
     if (!p) {
       // Legacy demo behaviour: console endpoints open in demo mode when no console key is configured.
@@ -54,7 +54,7 @@ const createAuth = ({ repo, config, defaultWorkspaceId }) => {
     }
     if (RANK[p.role] < RANK[role]) return next(new HttpError(403, "forbidden", `Requires the ${role} role`));
     return next();
-  };
+  }, { rule: { role, scope, legacyOpen } }); // the rule is read by the contract/authorization tests
 
   const createSession = (userId, workspaceId) => {
     const token = randomToken("hs_");

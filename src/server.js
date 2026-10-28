@@ -61,7 +61,7 @@ const buildApp = (config = load(), overrides = {}) => {
 
   const routes = [];
   const route = (method, path, ...handlers) => {
-    routes.push({ method: method.toUpperCase(), path });
+    routes.push({ method: method.toUpperCase(), path, rule: handlers.map((h) => h.rule).find(Boolean) || null });
     app[method](path, ...handlers);
   };
 
