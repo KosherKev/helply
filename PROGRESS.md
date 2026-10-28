@@ -162,6 +162,9 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 - **CORS_ORIGIN accepts a comma-separated list** (reflects only listed origins, `Vary: Origin`; +1 test).
 - **Domain:** `helplygh.online` and `www.helplygh.online` added to the Vercel project and the site redeployed (aliased to `https://helplygh.online`, which does not resolve until DNS is set). **DNS is NOT done** (Namecheap; I have no access): records and the Render custom-domain step are in `docs/DEPLOY.md`. The API domain `api.helplygh.online` does not exist yet; `site/vercel.json` still proxies to the onrender.com address.
 
+### 2026-10-28 (pushed; domain status)
+- **Pushed `main`** (`3193eaa`). Vercel's Git integration builds with the root `vercel.json` (installs and builds `site/` and `web/`, serves `site/deploy`); build verified Ready. `https://helplygh.online` serves the Next.js landing page at `/` (entry gate, no redirect in a clean browser), the web app at `/demo` and `/app/*`; `www` redirects to the apex. `api.helplygh.online/health` now returns 200 (Render certificate issued). Remaining: point `site/vercel.json` and root `vercel.json` rewrites at the API domain, set `NEXT_PUBLIC_API_URL` for the orb, once CORS is confirmed.
+
 ## Known Limitations
 
 1. ~~In-memory store.~~ Resolved: SQLite (`HELPLY_DB_PATH`, default `.data/helply.db` for `npm start`). Tests use `:memory:`.
