@@ -156,6 +156,8 @@ const buildApp = (config = load(), overrides = {}) => {
 };
 
 if (require.main === module) {
+  const env = require("./loadEnv").loadEnv();
+  console.log(env.found ? `[helply] loaded ${env.loaded.length} variable(s) from .env` : "[helply] no .env file found; using the process environment");
   const config = load();
   if (!config.dbPath) config.dbPath = ".data/helply.db";
   if (!config.demoMode && !config.encryptionKey) console.warn("[helply] HELPLY_ENCRYPTION_KEY is not set: stored secrets will not survive a restart.");

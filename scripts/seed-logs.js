@@ -5,6 +5,7 @@
  *   webhook then fails to update her order. Kofi's logs sit alongside (scoping must hide them).
  * Run:  CLS_BASE_URL=... CLS_WRITE_KEY=sk_live_... npm run seed
  */
+require("../src/loadEnv").loadEnv();
 const { load } = require("../src/config");
 
 const cfg = load();

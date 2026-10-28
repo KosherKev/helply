@@ -5,6 +5,7 @@
  * If translate fails, adjust KHAYA_TRANSLATE_PATH / the body in src/language/khaya.js.
  */
 const fs = require("node:fs");
+require("../src/loadEnv").loadEnv();
 const { load } = require("../src/config");
 const { createKhaya } = require("../src/language/khaya");
 
