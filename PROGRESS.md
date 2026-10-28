@@ -174,5 +174,5 @@ This file said "not a git repository" and "28/28", but `git log` showed 9 commit
 - **Built:** bead geometry and a new vertex shader in `site/src/components/world/flakes.ts` (morph through cloud, halo, per-bead float, drift, shimmer, sparkle, wide cursor glow); thick-slab mark sampling in `shapes.ts`; lean-to-cursor, scroll turn and two-axis drift in `World.tsx`.
 - **Broke and fixed:** first bead pass was too dense and too white (sticky look); second pass too blurry to read the mark; final pass tightens the core (offset 0.08, halo 10%, float 0.045) and lowers environment shine.
 - **Verified:** `tsc` and build clean; side-by-side captures against Emotion (idle, cursor sweep, scroll morph); Lighthouse mobile 93/100/100/100; 0.1% frames over 20 ms at 4x CPU slowdown; no console errors.
-- **Commit:** `COMMIT_PENDING` on branch `landing-page`.
+- **Commit:** `6d3b772` on branch `landing-page`.
 
