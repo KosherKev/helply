@@ -28,7 +28,7 @@ const cleanText = (text, max = 400) =>
   scrubString(String(text ?? ""))
     .replace(/<[^>]*>/g, "")
     .replace(/https?:\/\/\S+/gi, "")
-    .replace(/[`*_#>]/g, "")
+    .replace(/[`*#>]/g, "") // markdown characters; underscores stay so identifiers like ORDER_UPDATE_FAILED survive
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, max);

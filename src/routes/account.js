@@ -137,6 +137,11 @@ module.exports = (ctx) => {
   });
 
   // ── team ──────────────────────────────────────────────────────────────
+  route("get", "/v1/members", guard({ role: "agent" }), (req, res) => {
+    userOnly(req);
+    res.json({ data: repo.listMembers(ctx.wsOf(req)).map((m) => ({ id: m.id, name: m.name || m.email.split("@")[0], role: m.role })) });
+  });
+
   route("get", "/v1/team", guard({ role: "admin" }), (req, res) => {
     userOnly(req);
     const ws = ctx.wsOf(req);

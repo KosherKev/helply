@@ -7,8 +7,8 @@ Open-source customer support that speaks Ghanaian languages and reads the compan
 ## Commands
 ```bash
 npm install
-npm test            # node --test (28 tests at last count; server tests need Express installed)
-npm run dev         # http://localhost:8787
+npm test            # node --experimental-sqlite --test (75 tests at last count, includes the OpenAPI contract and isolation matrix)
+npm run dev         # http://localhost:8787  (web/: cd web && npm run dev -> :5173; npm run build runs tsc + prerender)
 npm run seed        # fictional demo logs into central-logging-service (needs CLS_WRITE_KEY)
 npm run check:khaya # verify Khaya endpoints with your key
 ```

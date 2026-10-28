@@ -19,6 +19,8 @@ const MAX_KEYS = 40;
 const JWT = /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g;
 const BEARER = /\bBearer\s+[A-Za-z0-9._~+/=-]{8,}/gi;
 const API_KEY = /\b(?:sk|pk|rk)_(?:live|test)_[A-Za-z0-9]{8,}\b|AIza[0-9A-Za-z_-]{20,}/g;
+// "token=abc123", "password: hunter2", "?api_key=...": secrets embedded in free text (error messages, URLs).
+const KV_SECRET = /\b(password|passwd|pwd|secret|client[_-]?secret|(?:access|refresh|auth|id|session|api)[_-]?token|token|api[_-]?key|apikey|authorization|pin|otp|cvv|cvc|ssn)(["']?\s*[:=]\s*["']?)(?!\[REDACTED\])[^\s"'&,;)]{3,}/gi;
 const EMAIL = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
 const GH_PHONE = /(?:\+?233|\b0)[\s-]?[235-9]\d[\s-]?\d{3}[\s-]?\d{4}\b/g;
 const CARD = /\b(?:\d[ -]?){12,18}\d\b/g;
@@ -49,6 +51,7 @@ const scrubString = (input) => {
   s = s
     .replace(JWT, "[jwt]")
     .replace(BEARER, "Bearer [REDACTED]")
+    .replace(KV_SECRET, "$1$2[REDACTED]")
     .replace(API_KEY, "[api-key]")
     .replace(EMAIL, "[email]")
     .replace(GH_PHONE, "[phone]")

@@ -34,3 +34,20 @@ test("output is bounded and does not mutate the input", () => {
   assert.equal(out.list.length, 20);
   assert.equal(input.list.length, 100);
 });
+
+test("secrets embedded in free text are redacted, ordinary prose is left alone", () => {
+  const { scrubString } = require("../src/logs/redact");
+  const cases = {
+    "order update failed token=abcd1234efgh5678ijkl": "order update failed token=[REDACTED]",
+    "password: hunter2hunter2 rejected": "password: [REDACTED] rejected",
+    "GET /cb?api_key=zzz999yyy888&x=1 failed": "GET /cb?api_key=[REDACTED]&x=1 failed",
+    'body {"access_token":"abc.def.ghi-123"}': 'body {"access_token":"[REDACTED]"}',
+    "client_secret=s3cr3t-value used": "client_secret=[REDACTED] used",
+    "otp=482913 and pin: 7391": "otp=[REDACTED] and pin: [REDACTED]",
+  };
+  for (const [input, expected] of Object.entries(cases)) assert.equal(scrubString(input), expected, input);
+  // negative cases: words that merely contain these terms are not mangled
+  for (const ok of ["token expired for the request", "Pin the version: 3 is required", "secret santa list", "the pinned order timed out", "authorization failed with 401"]) {
+    assert.equal(scrubString(ok), ok, ok);
+  }
+});

@@ -542,6 +542,62 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /v1/members:
+    get:
+      tags:
+        - Team
+      summary: Member names for assignee pickers (no emails)
+      operationId: get_v1_members
+      security:
+        - sessionAuth: []
+      x-min-role: agent
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        role:
+                          type: string
+                          enum:
+                            - owner
+                            - admin
+                            - agent
+                      required:
+                        - id
+                        - name
+                        - role
+                required:
+                  - data
+        "401":
+          description: No or invalid credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Role or scope not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /v1/team:
     get:
       tags:

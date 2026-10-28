@@ -1,5 +1,7 @@
 import { renderToString } from 'react-dom/server'
+import { StrictMode } from 'react'
 import { StaticRouter } from 'react-router'
-import Home from './pages/Home'
+import App from './App'
 
-export const render = () => renderToString(<StaticRouter location="/"><Home /></StaticRouter>)
+// Must render the exact tree main.tsx hydrates (including the Suspense boundary), or React reports a hydration mismatch.
+export const render = () => renderToString(<StrictMode><StaticRouter location="/"><App /></StaticRouter></StrictMode>)

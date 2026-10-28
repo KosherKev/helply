@@ -6,6 +6,8 @@ Thanks for helping. This project handles customer data, so tests and security ma
 ```bash
 npm install
 npm test          # must pass before any PR
+node scripts/build-openapi.js   # after any route change; the contract test fails if docs/openapi.yaml is stale
+(cd web && npm run build)       # tsc + build must be clean
 npm run dev
 ```
 Node 20+. No build step. Tests use the built-in `node:test`.

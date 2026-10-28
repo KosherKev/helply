@@ -96,6 +96,7 @@ const ops = {
 
   "GET /v1/workspace": ["Workspace and settings", "Workspace", "agent", null, ref("Workspace"), 200],
   "PATCH /v1/workspace": ["Update name and settings", "Workspace", "admin", obj({ name: str, settings: S("WorkspaceSettings") }, []), ref("Workspace"), 200],
+  "GET /v1/members": ["Member names for assignee pickers (no emails)", "Team", "agent", null, obj({ data: arr(obj({ id: str, name: str, role: en("owner", "admin", "agent") })) }), 200],
   "GET /v1/team": ["Members and pending invitations", "Team", "admin", null, ref("Team"), 200],
   "POST /v1/team/invitations": ["Invite a member (returns a link; email delivery is out of scope)", "Team", "admin", obj({ email: str, role: en("admin", "agent") }), obj({ invitation: S("Invitation"), token: str, link: str }), 201],
   "PATCH /v1/team/{userId}": ["Change a member's role", "Team", "admin", obj({ role: en("owner", "admin", "agent") }), obj({ userId: str, role: str }), 200],
